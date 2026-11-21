@@ -6,9 +6,11 @@ on:
     paths:
       - 'app/src/main/java/com/iawolf/captureprobe/TacticalBrain.java'
       - 'app/src/main/java/com/iawolf/captureprobe/TacticalSession.java'
+      - 'app/src/main/java/com/iawolf/captureprobe/VisualEvidenceGate.java'
       - 'app/src/main/java/com/iawolf/captureprobe/ControlBrain.java'
       - 'app/src/test/java/com/iawolf/captureprobe/TacticalBrainTest.java'
       - 'app/src/test/java/com/iawolf/captureprobe/TacticalSessionTest.java'
+      - 'app/src/test/java/com/iawolf/captureprobe/VisualEvidenceGateTest.java'
       - '.github/workflows/control-brain-tests.yml'
   workflow_dispatch:
 
@@ -27,10 +29,13 @@ jobs:
           javac -encoding UTF-8 -d /tmp/controlbrain \
             app/src/main/java/com/iawolf/captureprobe/TacticalBrain.java \
             app/src/main/java/com/iawolf/captureprobe/TacticalSession.java \
+            app/src/main/java/com/iawolf/captureprobe/VisualEvidenceGate.java \
             app/src/main/java/com/iawolf/captureprobe/ControlBrain.java \
             app/src/test/java/com/iawolf/captureprobe/TacticalBrainTest.java \
-            app/src/test/java/com/iawolf/captureprobe/TacticalSessionTest.java
+            app/src/test/java/com/iawolf/captureprobe/TacticalSessionTest.java \
+            app/src/test/java/com/iawolf/captureprobe/VisualEvidenceGateTest.java
       - name: Run tactical test suite
         run: |
           java -ea -cp /tmp/controlbrain com.iawolf.captureprobe.TacticalBrainTest
           java -ea -cp /tmp/controlbrain com.iawolf.captureprobe.TacticalSessionTest
+          java -ea -cp /tmp/controlbrain com.iawolf.captureprobe.VisualEvidenceGateTest
