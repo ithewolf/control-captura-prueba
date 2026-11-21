@@ -39,6 +39,28 @@ public final class TacticalSessionTest {
     d=s.respond("Control, ¿y ahora peleo?",false,0,500_000);
     expect(d.intent==TacticalBrain.Intent.FIGHT,"lenguaje natural peleo");
     expect(d.needsMoreContext,"pelea sin visión ni hechos requiere contexto");
+    s.reset();
+    d=s.respond("soy adc",true,0,600_000);
+    expect(d.intent==TacticalBrain.Intent.ROLE,"declaración de rol no es objetivo");
+    expect(d.answer.contains("adc"),"confirma rol declarado");
+    d=s.respond("pelear",true,0,601_000);
+    expect(d.answer.contains("Como tirador"),"rol persiste en conversación");
+    s.reset();
+    d=s.respond("enemigos cerca",true,0,700_000);
+    d=s.respond("aliados cerca",true,0,780_000);
+    d=s.respond("pelear",true,0,791_001);
+    expect(d.needsMoreContext,"el hecho aliado no prolonga enemigo vencido");
+    expect(!d.answer.contains("Hay aliados y rivales cerca"),"no aconsejar con enemigo expirado");
+    s.reset();
+    d=s.respond("enemigos cerca",true,0,800_000);
+    d=s.respond("no hay enemigos cerca",true,0,800_001);
+    d=s.respond("pelear",true,0,800_002);
+    expect(d.needsMoreContext,"nueva declaración corrige enemigo anterior");
+    s.reset();
+    d=s.respond("soy jungla",true,0,900_000);
+    expect("jungla".equals(s.currentRole()),"persistencia de rol jungla");
+    d=s.respond("y ahora que hago",true,0,900_100);
+    expect(d.intent==TacticalBrain.Intent.UNKNOWN,"declarar rol no inventa un tema anterior");
     System.out.println("TacticalSessionTest: "+checks+" comprobaciones correctas");
   }
 }
