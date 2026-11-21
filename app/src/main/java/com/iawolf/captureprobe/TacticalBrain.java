@@ -10,7 +10,7 @@ import java.util.Locale;
  */
 public final class TacticalBrain {
   public enum Side { ALLY, ENEMY, NEUTRAL, UNKNOWN }
-  public enum Intent { GREET, STATUS, GANK, OBJECTIVE, FIGHT, ROTATE, VISION, UNKNOWN }
+  public enum Intent { GREET, STATUS, ROLE, GANK, OBJECTIVE, FIGHT, ROTATE, VISION, UNKNOWN }
 
   public static final class Context {
     public final boolean capturing;
@@ -70,11 +70,14 @@ public final class TacticalBrain {
   public static Intent intent(String input) {
     String s=normalize(input);
     if(s.isEmpty())return Intent.UNKNOWN;
+    if(any(s,"soy jungla","estoy jungla","juego jungla","soy soporte","juego soporte",
+      "soy adc","juego adc","soy tirador","soy mid","juego mid","voy medio",
+      "soy top","juego top","voy baron"))return Intent.ROLE;
+    if(any(s,"cuantos enemigos","cuantos rivales","a quien ves","que ves","ves enemigos"))return Intent.VISION;
     if(any(s,"gank","gankear","embosc","me vienen","me persig","me atacan"))return Intent.GANK;
-    if(any(s,"dragon","baron","heraldo","objetivo","jungla","smite"))return Intent.OBJECTIVE;
+    if(any(s,"dragon","baron","heraldo","objetivo","castigo","smite","invadir jungla","farmear jungla","campamento"))return Intent.OBJECTIVE;
     if(any(s,"pelea","pelear","peleo","peleamos","teamfight","luchar","entrar","iniciar","retroceder","retir"))return Intent.FIGHT;
     if(any(s,"rotar","rotacion","torre destruida","tiramos torre","destruir torre","pushear","push"))return Intent.ROTATE;
-    if(any(s,"cuantos enemigos","cuantos rivales","a quien ves","que ves","ves enemigos"))return Intent.VISION;
     if(any(s,"estado","captura","pantalla","funciona"))return Intent.STATUS;
     if(any(s,"hola","buenas","escuchas","prueba"))return Intent.GREET;
     return Intent.UNKNOWN;
@@ -84,6 +87,11 @@ public final class TacticalBrain {
     String s=normalize(userText);
     Intent intent=intent(s);
     switch(intent) {
+      case ROLE:
+        return new Decision(intent,c.role.isEmpty()?
+          "Decime qué rol vas a jugar: top, jungla, mid, tirador o soporte.":
+          "Perfecto. Registré tu rol: "+c.role+". Voy a adaptar los consejos generales a esa posición.",
+          "rol declarado por el jugador",c.role.isEmpty());
       case GREET:
         return new Decision(intent,"Acá estoy, Wolf. Decime qué situación querés analizar.","saludo",false);
       case STATUS:
