@@ -1,0 +1,23 @@
+name: HP laboratory tests (isolated)
+on:
+  push:
+    branches: [lab-yolo-cvat-opencv-hp]
+    paths:
+      - 'lab_hp/**'
+      - '.github/workflows/hp-lab-tests.yml'
+  workflow_dispatch:
+jobs:
+  offline-unit-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install free CPU dependencies
+        run: python -m pip install 'numpy>=1.24,<3' 'opencv-python-headless>=4.8,<5'
+      - name: Run dataset audit and pipeline tests
+        run: |
+          cd lab_hp
+          python -m unittest discover -p 'test_*.py' -v
