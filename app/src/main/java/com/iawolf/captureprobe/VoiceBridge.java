@@ -191,7 +191,10 @@ public final class VoiceBridge {
    Voice best=null;int score=Integer.MIN_VALUE;
    String selected=context.getSharedPreferences("control_voice_settings",Context.MODE_PRIVATE).getString("voice_name","");
    Voice userChoice=null;
+   // Una elección explícita puede usar cualquier idioma instalado;
+   // el respaldo automático sigue limitado a español latino.
    for(Voice candidate:voices){
+    if(!selected.isEmpty() && selected.equals(candidate.getName()))userChoice=candidate;
     Locale locale=candidate.getLocale();
     if(locale==null || !"es".equalsIgnoreCase(locale.getLanguage()))continue;
     String country=locale.getCountry();
@@ -199,7 +202,6 @@ public final class VoiceBridge {
       "MX".equalsIgnoreCase(country)?200:
       "US".equalsIgnoreCase(country)?100:-1;
     if(priority<0)continue;
-    if(candidate.getName().equals(selected))userChoice=candidate;
     int candidateScore=priority*100+candidate.getQuality()*10+
       (candidate.isNetworkConnectionRequired()?-1:2);
     if(best==null || candidateScore>score){best=candidate;score=candidateScore;}
