@@ -19,7 +19,7 @@ class DatasetGateTests(unittest.TestCase):
     def tearDown(self):self.t.cleanup()
     def rows(self):
         return [{"image":"a.png","labels":"a.txt","source_video":"v1","scene_id":"s1","split":"train"},
-                {"image":"b.png","labels":"b.txt","source_video":"v2","scene_id":"s2","split":"test"}]
+                {"image":"b.png","labels":"b.txt","negative":True,"source_video":"v2","scene_id":"s2","split":"test"}]
     def test_valid(self):self.assertEqual(audit(self.rows(),self.root)["status"],"PASS")
     def test_negative_empty(self):self.assertEqual(dict(labels_ok(self.root/"b.txt")),{})
     def test_cross_video_leakage(self):
@@ -59,6 +59,18 @@ class DatasetGateTests(unittest.TestCase):
         r=self.rows()
         r[0]["negative"]=True
         with self.assertRaisesRegex(ValueError,"negative frame contains"):
+            audit(r,self.root)
+
+    def test_empty_labels_without_verified_negative_flag_rejected(self):
+        r=self.rows()
+        r[1].pop("negative")
+        with self.assertRaisesRegex(ValueError,"empty labels require explicit negative"):
+            audit(r,self.root)
+    def test_explicit_negative_with_empty_labels_accepted(self):
+        self.assertEqual(audit(self.rows(),self.root)["status"],"PASS")
+    def test_invalid_negative_flag_rejected(self):
+        r=self.rows();r[1]["negative"]="yes"
+        with self.assertRaisesRegex(ValueError,"negative must be bool"):
             audit(r,self.root)
 
 if __name__=="__main__":unittest.main()
