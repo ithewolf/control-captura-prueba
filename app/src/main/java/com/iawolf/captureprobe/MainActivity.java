@@ -72,7 +72,7 @@ public class MainActivity extends Activity {
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
-  TextView title=new TextView(this);title.setText("CONTROL v19: el botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
+  TextView title=new TextView(this);title.setText("CONTROL v21: voz latinoamericana PROVISIONAL. El botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
   content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
@@ -84,23 +84,27 @@ public class MainActivity extends Activity {
   voiceButton.setOnClickListener(v->speakTest());
   voice=new TextToSpeech(this,status->runOnUiThread(()->{
    if(status==TextToSpeech.SUCCESS && voice!=null){
-    int result=voice.setLanguage(new Locale("es","AR"));
-    // No cambiar automáticamente al acento de España.
-    voiceReady=(result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED);
-    if(voiceReady){
-     android.speech.tts.Voice best=null;
-     java.util.Set<android.speech.tts.Voice> installed=voice.getVoices();
-     if(installed!=null)for(android.speech.tts.Voice candidate:installed){
-      java.util.Locale loc=candidate.getLocale();
-      if(loc!=null && "es".equalsIgnoreCase(loc.getLanguage()) && "AR".equalsIgnoreCase(loc.getCountry()) && !candidate.isNetworkConnectionRequired() && (best==null || candidate.getQuality()>best.getQuality()))best=candidate;
-     }
-     voiceReady=best!=null && voice.setVoice(best)==TextToSpeech.SUCCESS;
+    // Voz provisional para diagnosticar el altavoz: AR > MX > US. Nunca ES.
+    android.speech.tts.Voice best=null;
+    int score=Integer.MIN_VALUE;
+    java.util.Set<android.speech.tts.Voice> installed=voice.getVoices();
+    if(installed!=null)for(android.speech.tts.Voice candidate:installed){
+     java.util.Locale loc=candidate.getLocale();
+     if(loc==null || !"es".equalsIgnoreCase(loc.getLanguage()))continue;
+     String country=loc.getCountry();
+     int priority="AR".equalsIgnoreCase(country)?300:
+       "MX".equalsIgnoreCase(country)?200:
+       "US".equalsIgnoreCase(country)?100:-1;
+     if(priority<0)continue;
+     int n=priority*100+candidate.getQuality()*10+(candidate.isNetworkConnectionRequired()?-1:2);
+     if(best==null || n>score){best=candidate;score=n;}
     }
+    voiceReady=best!=null && voice.setVoice(best)==TextToSpeech.SUCCESS;
     voice.setSpeechRate(1.06f);voice.setPitch(0.88f);
    }
    voiceButton.setEnabled(voiceReady);
    // No mostrar aviso cada vez que se abre la app. STT y captura son independientes.
-   if(!voiceReady)voiceButton.setText("Voz argentina no instalada (prueba de altavoz desactivada)");
+   if(!voiceReady)voiceButton.setText("Sin voz latina compatible (prueba desactivada)");
   }));
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
