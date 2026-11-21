@@ -18,7 +18,8 @@ public class MainActivity extends Activity {
  private boolean voiceReady=false;
  private Button voiceButton;
  private Button chooseVoiceButton;
- private String selectedMode="coach";
+ private String selectedMode="";
+ private boolean welcomeSpoken=false;
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
    "\nVoz TTS: "+CaptureService.ttsStatus+" · Motor: "+CaptureService.ttsVoice+
@@ -94,6 +95,7 @@ public class MainActivity extends Activity {
     voice.setSpeechRate(1.06f);voice.setPitch(0.88f);
    }
    voiceButton.setEnabled(voiceReady);
+   speakWelcomeIfReady();
    // No mostrar aviso cada vez que se abre la app. STT y captura son independientes.
    if(!voiceReady)voiceButton.setText("Sin voz seleccionada (prueba desactivada)");
    if(!getSharedPreferences("control_voice_settings",MODE_PRIVATE).getBoolean("voice_setup_seen",false)){
@@ -114,25 +116,28 @@ public class MainActivity extends Activity {
   setContentView(l);
   showModeChooser();
  }
+ private void speakWelcomeIfReady(){
+  if(welcomeSpoken || !voiceReady || voice==null) return;
+  welcomeSpoken=true;
+  voice.speak("Hola, Wolf. ¿Cómo estás? ¿Qué tenés pensado hacer hoy? ¿Querés que te acompañe en modo coach o en modo compañero?",TextToSpeech.QUEUE_FLUSH,null,"welcome_mode");
+ }
  private void showModeChooser(){
-  final String[] modes={"😈 Modo Tóxico — humor y cargadas argentinas","🧠 Modo Coach — consejos y entrenamiento"};
+  final String[] modes={"🧠 Modo Coach — entrenar con consejos concretos","😈 Modo Compañero — jugar, charlar y hacer cargadas"};
   new android.app.AlertDialog.Builder(this)
-   .setTitle("¿Cómo querés jugar hoy con CONTROL?")
-   .setSingleChoiceItems(modes,"toxico".equals(selectedMode)?0:1,(dialog,index)->{
-    selectedMode=index==0?"toxico":"coach";
+   .setTitle("Hola, ¿cómo estás? ¿Qué tenés pensado hacer hoy?")
+   .setMessage("¿Querés que te acompañe en modo coach o en modo compañero? Elegís en cada inicio.")
+   .setItems(modes,(dialog,index)->{
+    selectedMode=index==0?"coach":"companero";
     getSharedPreferences("control_mode",MODE_PRIVATE).edit().putString("mode",selectedMode).apply();
-    dialog.dismiss();
-    if("coach".equals(selectedMode)){
-     new android.app.AlertDialog.Builder(this)
-      .setTitle("Audio recomendado para entrenar")
-      .setMessage("Para que CONTROL reconozca mejor tu voz, te recomendamos reducir la música y los diálogos de campeones desde los ajustes de Wild Rift. Conservá los efectos y señales importantes. CONTROL no cambia estas opciones automáticamente.")
-      .setPositiveButton("Entendido",null)
-      .setNegativeButton("Mantener audio como está",null).show();
-    }else{
-     Toast.makeText(this,"Modo Tóxico: música y diálogos sin cambios",Toast.LENGTH_LONG).show();
-    }
+    new android.app.AlertDialog.Builder(this)
+     .setTitle(index==0?"Modo Coach: audio recomendado":"Modo Compañero: audio recomendado")
+     .setMessage(index==0
+      ? "Si querés entrenar con mejor reconocimiento de voz, te recomiendo bajar la música y los diálogos de campeones desde los ajustes de Wild Rift. Conservá efectos, avisos y señales del combate. Es opcional y CONTROL no cambiará el juego."
+      : "Para jugar y charlar podés conservar música, diálogos y efectos. Para que entienda mejor tus órdenes, usar auriculares ayuda a que los sonidos del juego no entren al micrófono. Si querés, también podés bajar los diálogos de campeones. No es obligatorio.")
+     .setPositiveButton("Entendido",null)
+     .setNegativeButton("Dejar audio como está",null).show();
    })
-   .setNegativeButton("Ahora no",null).show();
+   .setNegativeButton("Decidir después",null).show();
  }
  private java.util.ArrayList<android.speech.tts.Voice> compatibleVoices(){
   java.util.ArrayList<android.speech.tts.Voice> result=new java.util.ArrayList<>();
