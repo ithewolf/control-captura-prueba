@@ -17,6 +17,7 @@ public class MainActivity extends Activity {
  private TextToSpeech voice;
  private boolean voiceReady=false;
  private Button voiceButton;
+ private Button chooseVoiceButton;
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
    "\nVoz TTS: "+CaptureService.ttsStatus+" · Motor: "+CaptureService.ttsVoice+
@@ -72,39 +73,30 @@ public class MainActivity extends Activity {
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
-  TextView title=new TextView(this);title.setText("CONTROL v21: voz latinoamericana PROVISIONAL. El botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
+  TextView title=new TextView(this);title.setText("CONTROL v22: voz latinoamericana PROVISIONAL. El botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
   content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
   HorizontalScrollView hs=new HorizontalScrollView(this);
   historyView=new LinearLayout(this);historyView.setOrientation(LinearLayout.HORIZONTAL);
   hs.addView(historyView);content.addView(hs);
+  chooseVoiceButton=new Button(this);chooseVoiceButton.setText("Elegir o instalar voz de CONTROL");content.addView(chooseVoiceButton);
+  chooseVoiceButton.setOnClickListener(v->showVoiceChooser());
   voiceButton=new Button(this);voiceButton.setText("Probar ALTAVOZ / voz sintetizada (no micrófono)");content.addView(voiceButton);
   voiceButton.setEnabled(false);
   voiceButton.setOnClickListener(v->speakTest());
   voice=new TextToSpeech(this,status->runOnUiThread(()->{
    if(status==TextToSpeech.SUCCESS && voice!=null){
-    // Voz provisional para diagnosticar el altavoz: AR > MX > US. Nunca ES.
-    android.speech.tts.Voice best=null;
-    int score=Integer.MIN_VALUE;
-    java.util.Set<android.speech.tts.Voice> installed=voice.getVoices();
-    if(installed!=null)for(android.speech.tts.Voice candidate:installed){
-     java.util.Locale loc=candidate.getLocale();
-     if(loc==null || !"es".equalsIgnoreCase(loc.getLanguage()))continue;
-     String country=loc.getCountry();
-     int priority="AR".equalsIgnoreCase(country)?300:
-       "MX".equalsIgnoreCase(country)?200:
-       "US".equalsIgnoreCase(country)?100:-1;
-     if(priority<0)continue;
-     int n=priority*100+candidate.getQuality()*10+(candidate.isNetworkConnectionRequired()?-1:2);
-     if(best==null || n>score){best=candidate;score=n;}
-    }
-    voiceReady=best!=null && voice.setVoice(best)==TextToSpeech.SUCCESS;
+    voiceReady=selectPreferredVoice();
     voice.setSpeechRate(1.06f);voice.setPitch(0.88f);
    }
    voiceButton.setEnabled(voiceReady);
    // No mostrar aviso cada vez que se abre la app. STT y captura son independientes.
    if(!voiceReady)voiceButton.setText("Sin voz latina compatible (prueba desactivada)");
+   if(!getPreferences(MODE_PRIVATE).getBoolean("voice_setup_seen",false)){
+    getPreferences(MODE_PRIVATE).edit().putBoolean("voice_setup_seen",true).apply();
+    showVoiceChooser();
+   }
   }));
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
@@ -115,6 +107,74 @@ public class MainActivity extends Activity {
    .setNegativeButton("Cancelar",null).show());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
   l.addView(scroll);
   setContentView(l);
+ }
+ private java.util.ArrayList<android.speech.tts.Voice> compatibleVoices(){
+  java.util.ArrayList<android.speech.tts.Voice> result=new java.util.ArrayList<>();
+  if(voice==null || voice.getVoices()==null)return result;
+  for(android.speech.tts.Voice item:voice.getVoices()){
+   Locale loc=item.getLocale();
+   if(loc==null || !"es".equalsIgnoreCase(loc.getLanguage()))continue;
+   if("ES".equalsIgnoreCase(loc.getCountry()))continue;
+   result.add(item);
+  }
+  java.util.Collections.sort(result,(a,b)->{
+   int ca=rankLocale(a.getLocale()),cb=rankLocale(b.getLocale());
+   if(ca!=cb)return cb-ca;
+   return b.getQuality()-a.getQuality();
+  });
+  return result;
+ }
+ private int rankLocale(Locale l){
+  String country=l.getCountry();
+  return "AR".equalsIgnoreCase(country)?3:"MX".equalsIgnoreCase(country)?2:
+    "US".equalsIgnoreCase(country)?1:0;
+ }
+ private boolean selectPreferredVoice(){
+  java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices();
+  String saved=getPreferences(MODE_PRIVATE).getString("voice_name","");
+  android.speech.tts.Voice chosen=null;
+  for(android.speech.tts.Voice candidate:options)if(candidate.getName().equals(saved)){chosen=candidate;break;}
+  if(chosen==null && !options.isEmpty())chosen=options.get(0);
+  return chosen!=null && voice.setVoice(chosen)==TextToSpeech.SUCCESS;
+ }
+ private void showVoiceChooser(){
+  if(voice==null){Toast.makeText(this,"Motor de voz todavía no inicializado",Toast.LENGTH_SHORT).show();return;}
+  java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices();
+  if(options.isEmpty()){
+   new android.app.AlertDialog.Builder(this)
+    .setTitle("CONTROL no encontró una voz compatible")
+    .setMessage("Podés instalar datos de voz desde Android. No se descargará nada sin tu autorización. La escucha y captura seguirán funcionando aunque no haya voz.")
+    .setPositiveButton("Instalar voces", (d,w)->openVoiceInstaller())
+    .setNegativeButton("Seguir sin voz",null).show();
+   return;
+  }
+  String[] names=new String[options.size()];
+  for(int i=0;i<options.size();i++){
+   android.speech.tts.Voice v=options.get(i);
+   names[i]=v.getLocale().toLanguageTag()+" · "+v.getName()+
+      (v.isNetworkConnectionRequired()?" (requiere internet)":" (sin conexión)");
+  }
+  new android.app.AlertDialog.Builder(this)
+   .setTitle("Elegí la voz de CONTROL")
+   .setSingleChoiceItems(names,-1,(dialog,which)->{
+    android.speech.tts.Voice candidate=options.get(which);
+    if(voice.setVoice(candidate)==TextToSpeech.SUCCESS){
+     getPreferences(MODE_PRIVATE).edit().putString("voice_name",candidate.getName()).apply();
+     voiceReady=true;voiceButton.setEnabled(true);
+     voiceButton.setText("Probar altavoz / voz elegida");
+     voice.speak("Wolf, soy Control. Esta es mi voz de prueba.",TextToSpeech.QUEUE_FLUSH,null,"voice_preview");
+    }else Toast.makeText(this,"No se pudo seleccionar esta voz",Toast.LENGTH_SHORT).show();
+    dialog.dismiss();
+   })
+   .setNeutralButton("Instalar otras voces",(d,w)->openVoiceInstaller())
+   .setNegativeButton("Cancelar",null).show();
+ }
+ private void openVoiceInstaller(){
+  try{startActivity(new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA));}
+  catch(Exception ex){
+   try{startActivity(new Intent("com.android.settings.TTS_SETTINGS"));}
+   catch(Exception ignored){Toast.makeText(this,"Buscá Ajustes de texto a voz en Android",Toast.LENGTH_LONG).show();}
+  }
  }
  private void speakTest(){
   if(!voiceReady||voice==null){Toast.makeText(this,"Voz aún no disponible",Toast.LENGTH_SHORT).show();return;}
