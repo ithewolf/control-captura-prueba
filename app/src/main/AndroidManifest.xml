@@ -9,4 +9,5 @@
 <application android:label="CONTROL - Prueba audio y video" android:theme="@android:style/Theme.Material.Light.NoActionBar" android:usesCleartextTraffic="false" android:allowBackup="false">
 <activity android:name=".MainActivity" android:exported="true"><intent-filter><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent-filter></activity>
 <service android:name=".CaptureService" android:exported="false" android:foregroundServiceType="mediaProjection|microphone"/>
+<activity android:name=".BrainTextProbeActivity" android:exported="false"/>
 </application></manifest>
