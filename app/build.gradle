@@ -2,6 +2,6 @@ plugins { id 'com.android.application' }
 android {
  namespace 'com.iawolf.captureprobe'
  compileSdk 35
- defaultConfig { applicationId 'com.iawolf.captureprobe'; minSdk 29; targetSdk 35; versionCode 16; versionName '0.16' }
+ defaultConfig { applicationId 'com.iawolf.captureprobe'; minSdk 29; targetSdk 35; versionCode 17; versionName '0.17' }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
