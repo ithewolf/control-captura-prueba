@@ -21,11 +21,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
-      - name: Instalar herramientas Android
-        uses: android-actions/setup-android@v3
-      - name: Android SDK 35
+      - name: Verificar Android SDK preinstalado
         run: |
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          test -n "$ANDROID_HOME"
+          ls "$ANDROID_HOME/platforms"
+          ls "$ANDROID_HOME/build-tools"
+          test -f "$ANDROID_HOME/platforms/android-35/android.jar"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
       - name: Probar muestreador de imágenes (Java)
         run: |
           mkdir -p build/smoke
