@@ -24,6 +24,11 @@ jobs:
           SDKMGR="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           if [ ! -x "$SDKMGR" ]; then SDKMGR="$ANDROID_HOME/cmdline-tools/16.0/bin/sdkmanager"; fi
           "$SDKMGR" --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Probar procesamiento de cuadros (Java)
+        run: |
+          mkdir -p /tmp/control-tests
+          javac -d /tmp/control-tests app/src/main/java/com/iawolf/captureprobe/FrameSampler.java tests/com/iawolf/captureprobe/FrameSamplerTest.java
+          java -cp /tmp/control-tests com.iawolf.captureprobe.FrameSamplerTest
       - name: Compilar
         run: gradle --no-daemon :app:assembleDebug
       - uses: actions/upload-artifact@v4
