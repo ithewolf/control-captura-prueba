@@ -26,6 +26,11 @@ jobs:
       - name: Android SDK 35
         run: |
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
+      - name: Probar muestreador de imágenes (Java)
+        run: |
+          mkdir -p build/smoke
+          javac -d build/smoke app/src/main/java/com/iawolf/captureprobe/FrameSampler.java tests/FrameSamplerSmokeTest.java
+          java -cp build/smoke com.iawolf.captureprobe.FrameSamplerSmokeTest
       - name: Compilar APK debug
         run: gradle --no-daemon :app:assembleDebug
       - name: Publicar APK
