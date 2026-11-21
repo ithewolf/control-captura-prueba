@@ -4,17 +4,33 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.projection.MediaProjectionManager;
+import android.media.projection.MediaProjectionConfig;
 import android.os.*;
 import android.widget.*;
 public class MainActivity extends Activity {
  private TextView label; private final Handler h=new Handler(Looper.getMainLooper());
  private long before=-1;
  private final Runnable refresh=new Runnable(){public void run(){
-  label.setText("Estado: "+CaptureService.status+"\nCuadros: "+CaptureService.frames+
+  label.setText("Estado: "+CaptureService.status+"\nCallbacks: "+CaptureService.callbacks+
+   "\nImágenes recibidas: "+CaptureService.received+"\nImágenes analizadas: "+CaptureService.frames+
+   "\nNulas: "+CaptureService.nullImages+" · Antiguas: "+CaptureService.staleImages+
+   "\nResize: "+CaptureService.resizes+" · Descartadas: "+CaptureService.discarded+
+   "\nÚltimo evento: "+CaptureService.lastEvent+
    "\nCambios: "+CaptureService.changes+"\nOscuros: "+CaptureService.darkFrames+
    "\nTamaño: "+CaptureService.width+" x "+CaptureService.height+
    "\nCuadros desde salida: "+(before<0?"sin medición":Math.max(0,CaptureService.frames-before))+
    "\nError: "+CaptureService.error);
+  android.content.SharedPreferences snap=getSharedPreferences("capture_diagnostics",MODE_PRIVATE);
+  label.append("\nÚltimo registro guardado: callbacks "+snap.getLong("callbacks",0)+
+    " · recibidas "+snap.getLong("received",0)+
+    " · analizadas "+snap.getLong("frames",0)+
+    " · nulas "+snap.getLong("nullImages",0)+
+    " · antiguas "+snap.getLong("staleImages",0)+
+    " · resize "+snap.getLong("resizes",0)+
+    " · evento "+snap.getString("lastEvent","sin eventos")+
+    " · cambios "+snap.getLong("changes",0)+
+    " · estado "+snap.getString("status","sin registro")+
+    " · error "+snap.getString("error",""));
   h.postDelayed(this,1000);
  }};
  @Override public void onCreate(Bundle b){super.onCreate(b);LinearLayout l=new LinearLayout(this);
@@ -28,7 +44,10 @@ public class MainActivity extends Activity {
  private void requestCapture(){
   if(CaptureService.active){Toast.makeText(this,"Detené la sesión anterior",Toast.LENGTH_SHORT).show();return;}
   MediaProjectionManager m=(MediaProjectionManager)getSystemService(MEDIA_PROJECTION_SERVICE);
-  startActivityForResult(m.createScreenCaptureIntent(),77);
+  Intent request=android.os.Build.VERSION.SDK_INT>=34
+   ?m.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
+   :m.createScreenCaptureIntent();
+  startActivityForResult(request,77);
  }
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);
   if(request==77 && result==RESULT_OK && data!=null){
