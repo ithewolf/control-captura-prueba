@@ -37,6 +37,22 @@ public final class TacticalBrainTest {
     ok(d.needsMoreContext,"texto nulo");
     d=TacticalBrain.decide("me persiguen",new TacticalBrain.Context.Builder().enemyNear(true).escapeAvailable(false).build());
     ok(d.answer.contains("cobertura"),"escape no disponible");
+    ok(TacticalBrain.intent("Soy jungla")==TacticalBrain.Intent.ROLE,"rol no es objetivo");
+    ok(TacticalBrain.intent("¿Cuántos enemigos ves en el dragón?")==TacticalBrain.Intent.VISION,"visión gana prioridad");
+    ok(TacticalBrain.intent("voy por el Barón")==TacticalBrain.Intent.OBJECTIVE,"Barón como objetivo");
+    ok(TacticalBrain.intent("farmear jungla")==TacticalBrain.Intent.OBJECTIVE,"farmear jungla");
+    d=TacticalBrain.decide("soy soporte",new TacticalBrain.Context.Builder().role("soporte").build());
+    ok(d.intent==TacticalBrain.Intent.ROLE && d.answer.contains("soporte"),"reconocer rol soporte");
+    d=TacticalBrain.decide("pelear",new TacticalBrain.Context.Builder().role("adc").build());
+    ok(d.answer.contains("Como tirador") && d.needsMoreContext,"pelea: consejo adc pero sin inventar ventaja");
+    d=TacticalBrain.decide("dragón",new TacticalBrain.Context.Builder().role("jungla").build());
+    ok(d.answer.contains("Castigo") && d.needsMoreContext,"objetivo jungla sin datos suficientes");
+    d=TacticalBrain.decide("tiramos torre",new TacticalBrain.Context.Builder().role("mid").build());
+    ok(d.answer.contains("Como mid"),"rotación específica para mid");
+    d=TacticalBrain.decide("pelear",new TacticalBrain.Context.Builder().role("soporte").enemyNear(true).allyNear(false).build());
+    ok(d.answer.contains("No iniciaría") && d.answer.contains("Como soporte"),"rol no anula prudencia");
+    d=TacticalBrain.decide("dragón",new TacticalBrain.Context.Builder().role("top").build());
+    ok(d.answer.contains("Como top"),"objetivo top");
     System.out.println("TacticalBrainTest: "+passed+" pruebas correctas");
   }
 }
