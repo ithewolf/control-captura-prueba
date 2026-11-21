@@ -19,6 +19,9 @@ public class MainActivity extends Activity {
  private Button voiceButton;
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
+   "\nVoz TTS: "+CaptureService.ttsStatus+" · Motor: "+CaptureService.ttsVoice+
+   "\nTTS iniciados/finalizados/fallidos: "+CaptureService.ttsStarted+"/"+CaptureService.ttsCompleted+"/"+CaptureService.ttsFailed+
+   "\nErrores de escucha: "+CaptureService.speechErrors+
    "\nÚltimo texto escuchado: "+CaptureService.lastHeard+
    "\nRespuesta local: "+CaptureService.lastReply+
    "\nIntentos de escucha: "+CaptureService.listenAttempts+
