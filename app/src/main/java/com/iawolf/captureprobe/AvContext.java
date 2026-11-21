@@ -54,7 +54,7 @@ public final class AvContext {
     .replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
   // Exact wake word at the beginning (no background chatter or substrings).
   // A wake word alone is not enough: require a following command.
-  if (!text.matches("^\\\\s*control\\\\b[\\\\s,.:;!?-]+.+")) return null;
+  if (!text.matches("^\\s*control\\b[\\s,.:;!?-]+.+")) return null;
   if (!s.fresh)
    return "Wolf, te escuché, pero no tengo una imagen reciente del juego. No voy a inventar lo que está pasando.";
   if (s.dark)
