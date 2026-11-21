@@ -47,4 +47,18 @@ class DatasetGateTests(unittest.TestCase):
         (self.root/"a.txt").write_text("0 0.5 0.5\n")
         with self.assertRaises(ValueError):audit(self.rows(),self.root)
 
+    def test_missing_negative_label_is_allowed_only_if_flagged(self):
+        r=self.rows()
+        r[1]["labels"]="missing_negative.txt"
+        r[1]["negative"]=True
+        self.assertEqual(audit(r,self.root)["status"],"PASS")
+        r[1]["negative"]=False
+        with self.assertRaisesRegex(ValueError,"missing labels"):
+            audit(r,self.root)
+    def test_negative_cannot_contain_positive_boxes(self):
+        r=self.rows()
+        r[0]["negative"]=True
+        with self.assertRaisesRegex(ValueError,"negative frame contains"):
+            audit(r,self.root)
+
 if __name__=="__main__":unittest.main()
