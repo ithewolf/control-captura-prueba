@@ -18,6 +18,8 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
+      - name: Instalar herramientas del SDK Android
+        uses: android-actions/setup-android@v3
       - name: Preparar SDK de Android
         run: sdkmanager --install "platforms;android-35" "build-tools;35.0.0"
       - name: Compilar
