@@ -68,8 +68,10 @@ def audit(manifest,root,max_hash_distance=3):
             counts=labels_ok(lbl)
             if row.get("negative",False) and sum(counts.values())>0:
                 raise ValueError(f"row {i}: negative frame contains labels")
+            if not row.get("negative",False) and sum(counts.values())==0:
+                raise ValueError(f"row {i}: empty labels require explicit negative flag")
         elif row.get("negative",False):
-            counts=Counter()  # YOLO permits missing txt for background.
+            counts=Counter()  # YOLO permits missing txt for confirmed background.
         else:
             raise ValueError(f"row {i}: missing labels without negative flag")
         label_counts.update(counts);count[split]+=1
