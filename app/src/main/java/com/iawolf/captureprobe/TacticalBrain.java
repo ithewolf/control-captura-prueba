@@ -82,7 +82,52 @@ public final class TacticalBrain {
     if(any(s,"hola","buenas","escuchas","prueba"))return Intent.GREET;
     return Intent.UNKNOWN;
   }
+  /** Adds role guidance only when the player actually specified a role. */
   public static Decision decide(String userText,Context context){
+    Context c=context==null?new Context.Builder().build():context;
+    Decision base=decideBase(userText,c);
+    String hint=roleHint(base.intent,c.role);
+    if(hint.isEmpty())return base;
+    return new Decision(base.intent,base.answer+" "+hint,
+      base.rationale+"; consejo general para rol declarado",base.needsMoreContext);
+  }
+
+  private static String roleHint(Intent intent,String declared){
+    String r=normalize(declared);
+    if(intent==Intent.FIGHT){
+      switch(r){
+        case "adc": return "Como tirador, mantenete detrás de tu primera línea y guardá una salida.";
+        case "soporte": return "Como soporte, protegé a tu tirador y coordiná el control de masas.";
+        case "jungla": return "Como jungla, buscá un flanco solo si tenés visión y apoyo.";
+        case "mid": return "Como mid, cuidá los flancos y no te quedes aislado.";
+        case "top": return "Como top, evaluá iniciar o proteger a tu equipo según tu campeón.";
+        default: return "";
+      }
+    }
+    if(intent==Intent.OBJECTIVE){
+      switch(r){
+        case "jungla": return "Como jungla, comprobá Castigo, visión y apoyo antes de comprometerte.";
+        case "soporte": return "Como soporte, ayudá a controlar accesos y visión sin exponerte solo.";
+        case "adc": return "Como tirador, priorizá una posición segura para hacer daño al objetivo.";
+        case "mid": return "Como mid, revisá la prioridad de oleada antes de rotar.";
+        case "top": return "Como top, evaluá si podés rotar sin perder demasiada presión de línea.";
+        default: return "";
+      }
+    }
+    if(intent==Intent.ROTATE){
+      switch(r){
+        case "jungla": return "Como jungla, coordiná tu ruta y visión con el equipo.";
+        case "soporte": return "Como soporte, acompañá a tus aliados al asegurar visión.";
+        case "adc": return "Como tirador, farmeá de forma segura junto a tu equipo.";
+        case "mid": return "Como mid, aprovechá la prioridad de oleada para moverte.";
+        case "top": return "Como top, considerá la oleada antes de abandonar la línea.";
+        default: return "";
+      }
+    }
+    return "";
+  }
+
+  private static Decision decideBase(String userText,Context context){
     Context c=context==null?new Context.Builder().build():context;
     String s=normalize(userText);
     Intent intent=intent(s);
