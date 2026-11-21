@@ -3,5 +3,11 @@ android {
  namespace 'com.iawolf.captureprobe'
  compileSdk 35
  defaultConfig { applicationId 'com.iawolf.captureprobe'; minSdk 29; targetSdk 35; versionCode 26; versionName '0.26' }
+ buildTypes {
+   debug {
+     applicationIdSuffix '.brainlab'
+     versionNameSuffix '-brainlab'
+   }
+ }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
