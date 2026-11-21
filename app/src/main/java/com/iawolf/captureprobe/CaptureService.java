@@ -40,6 +40,9 @@ public class CaptureService extends Service {
  public static volatile boolean active=false;
  public static volatile String status="detenido",error="";
  public static volatile String audioStatus="sin iniciar",lastHeard="",lastReply="";
+ // Prueba verificable de simultaneidad: recepciones de imagen durante una escucha.
+ public static volatile long listenAttempts=0,recognizedPhrases=0,framesDuringLastListen=0;
+ public static volatile boolean simultaneousAvObserved=false;
  private VoiceBridge voiceBridge;
  private final Handler main=new Handler(Looper.getMainLooper());
  private HandlerThread worker;private Handler images;
@@ -62,9 +65,14 @@ public class CaptureService extends Service {
   .putLong("callbacks",callbacks).putLong("received",received)
   .putLong("nullImages",nullImages).putLong("staleImages",staleImages)
   .putLong("resizes",resizes).putLong("discarded",discarded)
+  .putLong("listenAttempts",listenAttempts)
+  .putLong("recognizedPhrases",recognizedPhrases)
+  .putLong("framesDuringLastListen",framesDuringLastListen)
+  .putBoolean("simultaneousAvObserved",simultaneousAvObserved)
   .putString("lastEvent",lastEvent)
   .putInt("width",width).putInt("height",height)
   .putString("status",status).putString("error",error)
+  .putString("audioStatus",audioStatus)
   .putLong("updated",System.currentTimeMillis()).apply();}
 
  @Override public IBinder onBind(Intent i){return null;}
@@ -87,6 +95,8 @@ public class CaptureService extends Service {
   nullImages=staleImages=resizes=discarded=0;lastEvent="Inicio";status="iniciando";error="";seen=false;lastAt=0;
   previewFrame=null;previewAt=0;clearRecentFrames();
   audioStatus="iniciando";lastHeard="";lastReply="";
+  listenAttempts=recognizedPhrases=framesDuringLastListen=0;
+  simultaneousAvObserved=false;
   try{
    boolean audioAllowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
    int fgType=ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION;
