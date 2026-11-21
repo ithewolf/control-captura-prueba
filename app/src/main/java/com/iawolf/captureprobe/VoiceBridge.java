@@ -154,13 +154,9 @@ public final class VoiceBridge {
    if(code!=TextToSpeech.SUCCESS){
     CaptureService.ttsStatus="motor TTS no disponible";return;
    }
-   int result=tts.setLanguage(new Locale("es","AR"));
-   // No usar español de España como alternativa automática.
-   ttsReady=result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED;
-   if(!ttsReady){CaptureService.ttsStatus="voz es-AR no disponible";return;}
-   if(!chooseArgentineVoice()){
-    ttsReady=false;
-    CaptureService.ttsStatus="voz argentina es-AR no disponible: respuesta solo escrita";
+   ttsReady=chooseLatinAmericanVoice();
+   if(!ttsReady){
+    CaptureService.ttsStatus="sin voz latina es-AR/es-MX/es-US disponible";
     return;
    }
    CaptureService.ttsStatus="voz preparada";
@@ -177,7 +173,7 @@ public final class VoiceBridge {
     });}
     @Override public void onError(String id){main.post(()->{
      CaptureService.ttsFailed++;
-     CaptureService.ttsStatus="error de síntesis de voz argentina";
+     CaptureService.ttsStatus="error de síntesis de voz";
      speaking=false;
      voiceFinishedAt=0;
      schedule(900);
@@ -186,25 +182,34 @@ public final class VoiceBridge {
   }));
  }
 
- // Android does not expose a gender field for TTS voices. Prefer a Spanish
- // embedded voice of higher reported quality; verify perceived gender on device.
- private boolean chooseArgentineVoice(){
+ // Prioridad: Argentina, México, español de EE. UU. Nunca es-ES.
+ // La API TTS no informa género: esta voz es PROVISIONAL, no masculina certificada.
+ private boolean chooseLatinAmericanVoice(){
   try{
    Set<Voice> voices=tts.getVoices();
    if(voices==null)return false;
    Voice best=null;int score=Integer.MIN_VALUE;
-   for(Voice v:voices){
-    Locale l=v.getLocale();
-    if(l==null || !"es".equalsIgnoreCase(l.getLanguage()) || !"AR".equalsIgnoreCase(l.getCountry()))continue;
-    int n=v.getQuality()*10+(v.isNetworkConnectionRequired()?-1:2);
-    // Android TTS no informa género; elegimos calidad, nunca acento es-ES.
-    if(best==null || n>score){best=v;score=n;}
+   for(Voice candidate:voices){
+    Locale locale=candidate.getLocale();
+    if(locale==null || !"es".equalsIgnoreCase(locale.getLanguage()))continue;
+    String country=locale.getCountry();
+    int priority="AR".equalsIgnoreCase(country)?300:
+      "MX".equalsIgnoreCase(country)?200:
+      "US".equalsIgnoreCase(country)?100:-1;
+    if(priority<0)continue;
+    int candidateScore=priority*100+candidate.getQuality()*10+
+      (candidate.isNetworkConnectionRequired()?-1:2);
+    if(best==null || candidateScore>score){best=candidate;score=candidateScore;}
    }
    if(best==null)return false;
-   int selected=tts.setVoice(best);
-   if(selected==TextToSpeech.SUCCESS)CaptureService.ttsVoice=best.getName()+" ("+best.getLocale().toLanguageTag()+")";
-   return selected==TextToSpeech.SUCCESS;
-  }catch(Exception err){CaptureService.ttsStatus="error al elegir voz: "+err.getClass().getSimpleName();return false;}
+   if(tts.setVoice(best)!=TextToSpeech.SUCCESS)return false;
+   CaptureService.ttsVoice=best.getName()+" ("+best.getLocale().toLanguageTag()+")";
+   CaptureService.ttsStatus="voz latina provisional seleccionada";
+   return true;
+  }catch(Exception err){
+   CaptureService.ttsStatus="error al elegir voz: "+err.getClass().getSimpleName();
+   return false;
+  }
  }
  private void finishListening(boolean recognized){
   long during=Math.max(0,CaptureService.received-listeningReceivedAt);
@@ -235,11 +240,11 @@ public final class VoiceBridge {
   main.removeCallbacks(retry);
   if(!running)return;
   if(tts==null || !ttsReady){
-   CaptureService.ttsStatus="respuesta escrita; voz argentina es-AR no disponible";
+   CaptureService.ttsStatus="respuesta escrita: no hay voz latina compatible";
    schedule(750);return;
   }
   speaking=true;
-  CaptureService.audioStatus="enviando respuesta a voz argentina";
+  CaptureService.ttsStatus="enviando respuesta a voz latina provisional";
   if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")==TextToSpeech.ERROR){
    CaptureService.ttsFailed++;
    CaptureService.ttsStatus="falló reproducción de voz";
