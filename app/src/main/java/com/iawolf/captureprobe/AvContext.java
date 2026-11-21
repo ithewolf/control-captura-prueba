@@ -48,7 +48,8 @@ public final class AvContext {
  }
 
  /** Diagnostic speech, not tactical advice. */
- public static String respond(String phrase, Snapshot s) {
+ public static String respond(String phrase, Snapshot s) { return respond(phrase,s,"coach"); }
+ public static String respond(String phrase, Snapshot s, String mode) {
   if (phrase == null) return null;
   String text = java.text.Normalizer.normalize(phrase, java.text.Normalizer.Form.NFD)
     .replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
@@ -61,6 +62,7 @@ public final class AvContext {
    return "Wolf, te escuché, pero la imagen reciente está oscura. No puedo analizar la situación.";
   if (text.contains("estado") || text.contains("ves") || text.contains("pantalla"))
    return "Wolf, te escucho y recibí una imagen reciente. Todavía no reconozco campeones ni situaciones tácticas.";
+  if ("toxico".equals(mode)) return "Te escuché, Wolf. No te voy a vender humo sobre la partida... ¡aunque vos hoy venís con ganas de mandarte una, eh!";
   return "Te escuché, Wolf. Tengo una imagen reciente, pero todavía no puedo darte un consejo táctico confiable.";
  }
 }
