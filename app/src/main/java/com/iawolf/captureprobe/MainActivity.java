@@ -13,6 +13,9 @@ public class MainActivity extends Activity {
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nCallbacks: "+CaptureService.callbacks+
    "\nImágenes recibidas: "+CaptureService.received+"\nImágenes analizadas: "+CaptureService.frames+
+   "\nNulas: "+CaptureService.nullImages+" · Antiguas: "+CaptureService.staleImages+
+   "\nResize: "+CaptureService.resizes+" · Descartadas: "+CaptureService.discarded+
+   "\nÚltimo evento: "+CaptureService.lastEvent+
    "\nCambios: "+CaptureService.changes+"\nOscuros: "+CaptureService.darkFrames+
    "\nTamaño: "+CaptureService.width+" x "+CaptureService.height+
    "\nCuadros desde salida: "+(before<0?"sin medición":Math.max(0,CaptureService.frames-before))+
@@ -21,6 +24,10 @@ public class MainActivity extends Activity {
   label.append("\nÚltimo registro guardado: callbacks "+snap.getLong("callbacks",0)+
     " · recibidas "+snap.getLong("received",0)+
     " · analizadas "+snap.getLong("frames",0)+
+    " · nulas "+snap.getLong("nullImages",0)+
+    " · antiguas "+snap.getLong("staleImages",0)+
+    " · resize "+snap.getLong("resizes",0)+
+    " · evento "+snap.getString("lastEvent","sin eventos")+
     " · cambios "+snap.getLong("changes",0)+
     " · estado "+snap.getString("status","sin registro")+
     " · error "+snap.getString("error",""));
