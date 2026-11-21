@@ -132,7 +132,7 @@ public class MainActivity extends Activity {
     new android.app.AlertDialog.Builder(this)
      .setTitle(index==0?"Modo Coach: audio recomendado":"Modo Compañero: audio recomendado")
      .setMessage(index==0
-      ? "Si querés entrenar con mejor reconocimiento de voz, te recomiendo bajar la música y los diálogos de campeones desde los ajustes de Wild Rift. Conservá efectos, avisos y señales del combate. Es opcional y CONTROL no cambiará el juego."
+      ? "Te recomiendo usar auriculares para escuchar mejor las indicaciones y evitar que el audio del juego entre al micrófono. Si querés entrenar con mejor reconocimiento de voz, también podés bajar la música y los diálogos de campeones desde los ajustes de Wild Rift. Conservá efectos, avisos y señales del combate. Todo es opcional y CONTROL no cambiará el juego."
       : "Para jugar y charlar podés conservar música, diálogos y efectos. Para que entienda mejor tus órdenes, usar auriculares ayuda a que los sonidos del juego no entren al micrófono. Si querés, también podés bajar los diálogos de campeones. No es obligatorio.")
      .setPositiveButton("Entendido",null)
      .setNegativeButton("Dejar audio como está",null).show();
