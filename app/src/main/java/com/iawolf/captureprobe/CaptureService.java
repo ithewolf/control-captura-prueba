@@ -2,6 +2,8 @@ package com.iawolf.captureprobe;
 import android.app.*;
 import android.content.*;
 import android.content.pm.ServiceInfo;
+import android.content.pm.PackageManager;
+import android.Manifest;
 import android.graphics.PixelFormat;
 import android.graphics.Bitmap;
 import android.hardware.display.*;
@@ -37,6 +39,8 @@ public class CaptureService extends Service {
 
  public static volatile boolean active=false;
  public static volatile String status="detenido",error="";
+ public static volatile String audioStatus="sin iniciar",lastHeard="",lastReply="";
+ private VoiceBridge voiceBridge;
  private final Handler main=new Handler(Looper.getMainLooper());
  private HandlerThread worker;private Handler images;
  private MediaProjection projection;private VirtualDisplay display;private ImageReader reader;
@@ -72,7 +76,7 @@ public class CaptureService extends Service {
   PendingIntent stop=PendingIntent.getService(this,1,new Intent(this,CaptureService.class).setAction("STOP"),
    PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
   return new Notification.Builder(this,CHANNEL).setSmallIcon(android.R.drawable.ic_menu_view)
-   .setContentTitle("CONTROL captura de pantalla")
+   .setContentTitle("CONTROL captura audiovisual")
    .setContentText("Cuadros "+frames+" · Cambios "+changes+" · "+status)
    .setOngoing(true).addAction(new Notification.Action.Builder(null,"Detener",stop).build()).build();
  }
@@ -82,8 +86,12 @@ public class CaptureService extends Service {
   active=true;stopping=false;frames=changes=darkFrames=callbacks=received=0;
   nullImages=staleImages=resizes=discarded=0;lastEvent="Inicio";status="iniciando";error="";seen=false;lastAt=0;
   previewFrame=null;previewAt=0;clearRecentFrames();
+  audioStatus="iniciando";lastHeard="";lastReply="";
   try{
-   startForeground(1,notice(),ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
+   boolean audioAllowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
+   int fgType=ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION;
+   if(audioAllowed)fgType|=ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE;
+   startForeground(1,notice(),fgType);
    Intent grant=android.os.Build.VERSION.SDK_INT>=33?
     intent.getParcelableExtra("projectionData",Intent.class):
     intent.getParcelableExtra("projectionData");
@@ -109,6 +117,8 @@ public class CaptureService extends Service {
    display=projection.createVirtualDisplay("CONTROL diagnosis",width,height,metrics.densityDpi,
     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,reader.getSurface(),null,images);
    status="capturando";latestFrameAt=SystemClock.elapsedRealtime();
+   if(audioAllowed){voiceBridge=new VoiceBridge(this);voiceBridge.start();}
+   else audioStatus="permiso de micrófono pendiente";
    main.postDelayed(monitor,15000);
    main.postDelayed(()->{if(active)stopNow();},600000);
    main.postDelayed(()->{if(active&&frames==0){error="No llegaron cuadros en 12 segundos";status="sin cuadros";}},12000);
@@ -185,6 +195,8 @@ public class CaptureService extends Service {
  }
  private void stopNow(){
   if(stopping)return;stopping=true;active=false;
+  if(voiceBridge!=null){voiceBridge.stop();voiceBridge=null;}
+  audioStatus="detenido";
   main.removeCallbacks(monitor);
   previewFrame=null;previewAt=0;clearRecentFrames();
   if(display!=null){display.release();display=null;}
