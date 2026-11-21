@@ -61,3 +61,23 @@ Fuente: https://developer.android.com/media/platform/sharing-audio-input
 
 **No desinstalar v17/v16 antes de guardar diagnósticos útiles.**
 La v18 no cambia la voz femenina provisional ni incluye LLM.
+
+## Medición del tiempo de reactivación tras la respuesta
+
+La pausa de CONTROL después de hablar está configurada inicialmente en **900 ms**.
+No existe un mínimo universal de segundos impuesto por la API de Android:
+la siguiente solicitud debe esperar a `RecognitionListener.onResults` o `onError`.
+La implementación registra la diferencia real entre el evento `TTS.onDone` y el
+próximo `SpeechRecognizer.onReadyForSpeech`. La muestra incluye los 900 ms
+programados y el tiempo adicional que tarde el motor local en reaccionar.
+Se muestra como **Vuelta a escuchar después de hablar (ms)**.
+Si la API no llega a `onReadyForSpeech`, queda «aún sin medir».
+
+Reiniciar una solicitud **no garantiza** reiniciar cuotas internas de Android,
+ni el servicio está diseñado para escuchas indefinidas. Si aparecen errores
+`ERROR_TOO_MANY_REQUESTS` o `ERROR_RECOGNIZER_BUSY`, usar pausas mayores
+y analizar un motor ASR local de streaming para sesiones de varias horas.
+
+Referencias oficiales:
+- https://developer.android.com/reference/android/speech/SpeechRecognizer
+- https://developer.android.com/reference/android/speech/tts/UtteranceProgressListener
