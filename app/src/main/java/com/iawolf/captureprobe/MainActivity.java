@@ -102,6 +102,8 @@ public class MainActivity extends Activity {
     showVoiceChooser();
    }
   }));
+  Button brainTest=new Button(this);brainTest.setText("Probar cerebro por texto (sin micrófono)");content.addView(brainTest);
+  brainTest.setOnClickListener(v->startActivity(new Intent(this,BrainTextProbeActivity.class)));
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
   start.setOnClickListener(v->new android.app.AlertDialog.Builder(this)
