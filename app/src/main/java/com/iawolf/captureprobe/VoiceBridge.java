@@ -184,7 +184,7 @@ public final class VoiceBridge {
 
  // Android does not expose a gender field for TTS voices. Prefer a Spanish
  // embedded voice of higher reported quality; verify perceived gender on device.
- private boolean chooseOfflineSpanishVoice(){
+ private boolean chooseArgentineVoice(){
   try{
    Set<Voice> voices=tts.getVoices();
    if(voices==null)return false;
