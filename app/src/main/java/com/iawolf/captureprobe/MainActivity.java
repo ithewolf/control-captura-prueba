@@ -93,8 +93,8 @@ public class MainActivity extends Activity {
    voiceButton.setEnabled(voiceReady);
    // No mostrar aviso cada vez que se abre la app. STT y captura son independientes.
    if(!voiceReady)voiceButton.setText("Sin voz latina compatible (prueba desactivada)");
-   if(!getPreferences(MODE_PRIVATE).getBoolean("voice_setup_seen",false)){
-    getPreferences(MODE_PRIVATE).edit().putBoolean("voice_setup_seen",true).apply();
+   if(!getSharedPreferences("control_voice_settings",MODE_PRIVATE).getBoolean("voice_setup_seen",false)){
+    getSharedPreferences("control_voice_settings",MODE_PRIVATE).edit().putBoolean("voice_setup_seen",true).apply();
     showVoiceChooser();
    }
   }));
@@ -131,7 +131,7 @@ public class MainActivity extends Activity {
  }
  private boolean selectPreferredVoice(){
   java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices();
-  String saved=getPreferences(MODE_PRIVATE).getString("voice_name","");
+  String saved=getSharedPreferences("control_voice_settings",MODE_PRIVATE).getString("voice_name","");
   android.speech.tts.Voice chosen=null;
   for(android.speech.tts.Voice candidate:options)if(candidate.getName().equals(saved)){chosen=candidate;break;}
   if(chosen==null && !options.isEmpty())chosen=options.get(0);
@@ -159,7 +159,7 @@ public class MainActivity extends Activity {
    .setSingleChoiceItems(names,-1,(dialog,which)->{
     android.speech.tts.Voice candidate=options.get(which);
     if(voice.setVoice(candidate)==TextToSpeech.SUCCESS){
-     getPreferences(MODE_PRIVATE).edit().putString("voice_name",candidate.getName()).apply();
+     getSharedPreferences("control_voice_settings",MODE_PRIVATE).edit().putString("voice_name",candidate.getName()).apply();
      voiceReady=true;voiceButton.setEnabled(true);
      voiceButton.setText("Probar altavoz / voz elegida");
      voice.speak("Wolf, soy Control. Esta es mi voz de prueba.",TextToSpeech.QUEUE_FLUSH,null,"voice_preview");
