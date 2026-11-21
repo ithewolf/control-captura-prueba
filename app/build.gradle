@@ -9,3 +9,58 @@ android {
 dependencies {
  implementation 'com.alphacephei:vosk-android:0.3.47'
 }
+
+/*
+ * The Spanish model is fetched during compilation, never during gameplay.
+ * Source: https://alphacephei.com/vosk/models (Apache-2.0 model).
+ * This task must complete successfully before an APK can be considered ready.
+ */
+android {
+ sourceSets {
+  main {
+   assets.srcDir("$buildDir/generated/voskAssets")
+  }
+ }
+}
+tasks.register('prepareVoskSpanishModel') {
+ def outputRoot=file("$buildDir/generated/voskAssets/model-es")
+ outputs.dir(outputRoot)
+ doLast {
+  def marker=new File(outputRoot,'.uuid')
+  if(marker.isFile())return
+  outputRoot.mkdirs()
+  def modelUrl='https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip'
+  def zipFile=new File(temporaryDir,'vosk-es.zip')
+  zipFile.parentFile.mkdirs()
+  new URL(modelUrl).openStream().withCloseable { input ->
+   zipFile.withOutputStream { output -> output << input }
+  }
+  new java.util.zip.ZipInputStream(new FileInputStream(zipFile)).withCloseable { zis ->
+   java.util.zip.ZipEntry entry
+   while((entry=zis.nextEntry)!=null) {
+    def relative=entry.name.replace('\\','/')
+    def prefix='vosk-model-small-es-0.42/'
+    if(!relative.startsWith(prefix)) {zis.closeEntry();continue}
+    relative=relative.substring(prefix.length())
+    if(relative.isEmpty()){zis.closeEntry();continue}
+    def dest=new File(outputRoot,relative).canonicalFile
+    if(!dest.toPath().startsWith(outputRoot.canonicalFile.toPath()))
+      throw new GradleException('Unsafe model ZIP path: '+relative)
+    if(entry.isDirectory())dest.mkdirs()
+    else {
+     dest.parentFile.mkdirs()
+     dest.withOutputStream { stream ->
+      byte[] buffer=new byte[8192]
+      int read
+      while((read=zis.read(buffer))!=-1)stream.write(buffer,0,read)
+     }
+    }
+    zis.closeEntry()
+   }
+  }
+  if(!new File(outputRoot,'am').isDirectory()||!new File(outputRoot,'conf').isDirectory())
+   throw new GradleException('Spanish Vosk model download is incomplete')
+  marker.text='vosk-model-small-es-0.42'
+ }
+}
+tasks.named('preBuild').configure { dependsOn tasks.named('prepareVoskSpanishModel') }
