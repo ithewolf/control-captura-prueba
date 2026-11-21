@@ -71,6 +71,7 @@ public final class VoiceBridge {
   @Override public void onError(int code){
    if(!running || recycling)return;
    finishListening(false);
+   CaptureService.speechErrors++;
    CaptureService.audioStatus="error de reconocimiento "+code;
    if(code==SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS){
     CaptureService.audioStatus="falta permiso de micrófono";
@@ -151,29 +152,32 @@ public final class VoiceBridge {
   tts=new TextToSpeech(context,code->main.post(()->{
    if(!running || tts==null)return;
    if(code!=TextToSpeech.SUCCESS){
-    CaptureService.audioStatus="TTS provisional no disponible";return;
+    CaptureService.ttsStatus="motor TTS no disponible";return;
    }
    int result=tts.setLanguage(new Locale("es","AR"));
    // No usar español de España como alternativa automática.
    ttsReady=result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED;
-   if(!ttsReady){CaptureService.audioStatus="no hay voz argentina instalada";return;}
+   if(!ttsReady){CaptureService.ttsStatus="voz es-AR no disponible";return;}
    if(!chooseArgentineVoice()){
     ttsReady=false;
-    CaptureService.audioStatus="no hay voz argentina es-AR disponible: respuesta solo escrita";
+    CaptureService.ttsStatus="voz argentina es-AR no disponible: respuesta solo escrita";
     return;
    }
+   CaptureService.ttsStatus="voz preparada";
    tts.setSpeechRate(1.06f);
    tts.setPitch(0.88f);
    tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
-    @Override public void onStart(String id){}
+    @Override public void onStart(String id){CaptureService.ttsStarted++;CaptureService.ttsStatus="audio TTS iniciado";}
     @Override public void onDone(String id){main.post(()->{
-     CaptureService.audioStatus="respuesta por voz finalizada";
+     CaptureService.ttsCompleted++;
+     CaptureService.ttsStatus="audio TTS completado";
      voiceFinishedAt=SystemClock.elapsedRealtime();
      speaking=false;
      schedule(900);
     });}
     @Override public void onError(String id){main.post(()->{
-     CaptureService.audioStatus="error de síntesis de voz argentina";
+     CaptureService.ttsFailed++;
+     CaptureService.ttsStatus="error de síntesis de voz argentina";
      speaking=false;
      voiceFinishedAt=0;
      schedule(900);
@@ -196,8 +200,11 @@ public final class VoiceBridge {
     // Android TTS no informa género; elegimos calidad, nunca acento es-ES.
     if(best==null || n>score){best=v;score=n;}
    }
-   return best!=null && tts.setVoice(best)==TextToSpeech.SUCCESS;
-  }catch(Exception ignored){return false;}
+   if(best==null)return false;
+   int selected=tts.setVoice(best);
+   if(selected==TextToSpeech.SUCCESS)CaptureService.ttsVoice=best.getName()+" ("+best.getLocale().toLanguageTag()+")";
+   return selected==TextToSpeech.SUCCESS;
+  }catch(Exception err){CaptureService.ttsStatus="error al elegir voz: "+err.getClass().getSimpleName();return false;}
  }
  private void finishListening(boolean recognized){
   long during=Math.max(0,CaptureService.received-listeningReceivedAt);
@@ -228,13 +235,14 @@ public final class VoiceBridge {
   main.removeCallbacks(retry);
   if(!running)return;
   if(tts==null || !ttsReady){
-   CaptureService.audioStatus="respuesta escrita; voz argentina es-AR no disponible";
+   CaptureService.ttsStatus="respuesta escrita; voz argentina es-AR no disponible";
    schedule(750);return;
   }
   speaking=true;
   CaptureService.audioStatus="enviando respuesta a voz argentina";
   if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")==TextToSpeech.ERROR){
-   CaptureService.audioStatus="falló reproducción de voz";
+   CaptureService.ttsFailed++;
+   CaptureService.ttsStatus="falló reproducción de voz";
    speaking=false;voiceFinishedAt=0;schedule(900);
   }
  }
