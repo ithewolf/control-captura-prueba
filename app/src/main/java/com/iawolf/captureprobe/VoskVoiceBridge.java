@@ -153,7 +153,8 @@ public final class VoskVoiceBridge implements RecognitionListener {
    CaptureService.framesDuringLastListen=during;
    if(during>0)CaptureService.simultaneousAvObserved=true;
    AvContext.Snapshot visual=AvContext.snapshot(CaptureService.sessionStartedAt,SystemClock.elapsedRealtime());
-   String reply=AvContext.respond(heard,visual);
+   String mode=context.getSharedPreferences("control_mode",Context.MODE_PRIVATE).getString("mode","coach");
+   String reply=AvContext.respond(heard,visual,mode);
    if(reply!=null){CaptureService.lastReply=reply;say(reply);}
   });
  }
