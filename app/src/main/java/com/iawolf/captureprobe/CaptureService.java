@@ -10,6 +10,9 @@ import android.media.projection.*;
 import android.os.*;
 import android.util.DisplayMetrics;
 import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.List;
 public class CaptureService extends Service {
  public static volatile long frames=0,changes=0,darkFrames=0,callbacks=0,received=0;
  public static volatile int width=0,height=0;
@@ -18,6 +21,20 @@ public class CaptureService extends Service {
  // Vista previa solo en memoria; nunca se guarda ni se transmite.
  public static volatile Bitmap previewFrame=null;
  public static volatile long previewAt=0;
+ private static final Object historyLock=new Object();
+ private static final ArrayDeque<Bitmap> history=new ArrayDeque<>();
+ private static final int HISTORY_LIMIT=10;
+ public static Bitmap[] getRecentFrames(){
+  synchronized(historyLock){return history.toArray(new Bitmap[0]);}
+ }
+ private static void addRecentFrame(Bitmap image){
+  synchronized(historyLock){
+   if(history.size()==HISTORY_LIMIT)history.removeFirst();
+   history.addLast(image);
+  }
+ }
+ public static void clearRecentFrames(){synchronized(historyLock){history.clear();}}
+
  public static volatile boolean active=false;
  public static volatile String status="detenido",error="";
  private final Handler main=new Handler(Looper.getMainLooper());
@@ -64,7 +81,7 @@ public class CaptureService extends Service {
   if(active)return START_NOT_STICKY;
   active=true;stopping=false;frames=changes=darkFrames=callbacks=received=0;
   nullImages=staleImages=resizes=discarded=0;lastEvent="Inicio";status="iniciando";error="";seen=false;lastAt=0;
-  previewFrame=null;previewAt=0;
+  previewFrame=null;previewAt=0;clearRecentFrames();
   try{
    startForeground(1,notice(),ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
    Intent grant=android.os.Build.VERSION.SDK_INT>=33?
@@ -152,7 +169,7 @@ public class CaptureService extends Service {
    FrameSampler.Result data=FrameSampler.sample(b,img.getWidth(),img.getHeight(),p.getRowStride(),p.getPixelStride());
    // Un fotograma visual cada 3 segundos; no altera la tasa de captura.
    if(now-previewAt>=3000){
-    try{Bitmap next=makePreview(img,p);previewFrame=next;previewAt=now;}
+    try{Bitmap next=makePreview(img,p);addRecentFrame(next);previewFrame=next;previewAt=now;}
     catch(RuntimeException previewError){lastEvent="vista previa no disponible";}
    }
    if(seen&&hash!=data.fingerprint)changes++;
@@ -169,7 +186,7 @@ public class CaptureService extends Service {
  private void stopNow(){
   if(stopping)return;stopping=true;active=false;
   main.removeCallbacks(monitor);
-  previewFrame=null;previewAt=0;
+  previewFrame=null;previewAt=0;clearRecentFrames();
   if(display!=null){display.release();display=null;}
   if(reader!=null){reader.close();reader=null;}
   if(projection!=null){MediaProjection p=projection;projection=null;p.stop();}
