@@ -28,7 +28,7 @@ import java.util.Locale;
  * instalado puede procesar audio mediante red; no se promete STT offline.
  */
 public final class VoiceBridge {
- private static final long RECYCLE_MS=20L*60L*1000L;
+ private static final long RECYCLE_MS=15L*60L*1000L;
  private static final long PAUSE_MS=4000L;
  private final Context context;
  private final Handler main=new Handler(Looper.getMainLooper());
@@ -139,7 +139,8 @@ public final class VoiceBridge {
    CaptureService.recognizedPhrases++;
    CaptureService.lastHeard=heard;
    CaptureService.audioStatus="frase reconocida";
-   String reply=ControlBrain.replyTo(heard,CaptureService.active,CaptureService.frames,CaptureService.changes);
+   AvContext.Snapshot visual=AvContext.snapshot(CaptureService.sessionStartedAt,SystemClock.elapsedRealtime());
+   String reply=AvContext.respond(heard,visual);
    if(reply==null){CaptureService.audioStatus="frase sin activación CONTROL: "+heard;schedule(650);return;}
    CaptureService.lastReply=reply;
    say(reply);
