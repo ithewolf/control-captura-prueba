@@ -22,3 +22,32 @@ El esquema de clases final dependerá de imágenes verificadas de Wild Rift y de
 
 ## Auditoría de este cambio
 **Requisito registrado; modelo aún no entrenado ni probado.** Este documento redefine prioridad y criterios futuros, no demuestra identificación en tiempo real.
+
+
+## Regla funcional CONFIRMADA por Wolf (23:18 UTC, 21/11/2026)
+CONTROL es **únicamente un coach observador y preventivo**, no una IA que juegue o ejecute acciones por el usuario. El usuario decide qué atacar y cuándo.
+
+**Identificación mínima deseada:**
+- Campeones aliados.
+- Campeones enemigos.
+- Unidades y objetivos no clasificados como campeones aliados/enemigos: súbditos (minions/creeps), monstruos de jungla y estructuras como torres. Una torre puede pertenecer a un equipo; NO etiquetar toda torre como neutral sin distinguir el bando cuando sea posible. Igual con súbditos: hay súbditos aliados y enemigos. Los monstruos de jungla sí son objetivos neutrales en general. Mantener categoría y afiliación como atributos distintos para evitar errores.
+
+**Comportamiento permitido:**
+- Informar presencia y proximidad: «Hay un enemigo cerca», «Cuidado, puede venir un gank», «Hay una torre enemiga adelante», «Hay monstruos neutrales en la zona».
+- Explicar riesgos y oportunidades estratégicas con contexto y margen de incertidumbre, sin jugar por el usuario.
+- Si no ve con certeza qué objeto/equipo es, responder **desconocido** o callar antes que inventarlo.
+
+**Comportamiento fuera de alcance:**
+- Calcular, leer o estimar porcentajes de HP como requisito de identificación.
+- Comentarios tipo «Matalo ahora que tiene poca vida», «Rematalo» basados en HP.
+- Pulsar botones, mover el personaje, atacar automáticamente ni controlar la partida.
+- Ordenar un ataque solo por ver a un enemigo; el coach advierte, no sustituye al jugador.
+
+**Diseño de etiquetas recomendado para futura investigación, NO IMPLEMENTADO:**
+- Separar `entity_type` (champion, minion, jungle_monster, turret, other) de `affiliation` (ally, enemy, neutral, unknown).
+- Un monstruo de jungla usualmente es neutral; torres y súbditos requieren afiliación aliada/enemiga.
+- El prototipo `health_bar_track` y la medición `measure_fill()` son secundarios y no son requisitos funcionales.
+- Evaluar precisión y recall para presencia, tipo y afiliación; medir errores graves enemigo/aliado por separado, y la tasa de abstención `unknown`.
+- Mantener revisión por videos independientes, prioridad de eficiencia térmica y la prohibición de integración a Android antes de validación real.
+
+**Estado de implementación:** requisito registrado documentalmente. Clasificador de equipos/tipos NO ENTRENADO ni probado. Ningún archivo Android modificado por esta decisión.
