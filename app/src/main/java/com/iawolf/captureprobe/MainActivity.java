@@ -7,11 +7,16 @@ import android.media.projection.MediaProjectionManager;
 import android.media.projection.MediaProjectionConfig;
 import android.os.*;
 import android.graphics.Bitmap;
+import android.speech.tts.TextToSpeech;
+import java.util.Locale;
 import android.widget.*;
 public class MainActivity extends Activity {
  private TextView label; private ImageView preview; private LinearLayout historyView; private final Handler h=new Handler(Looper.getMainLooper());
  private long lastShownAt=-1;
  private long before=-1;
+ private TextToSpeech voice;
+ private boolean voiceReady=false;
+ private Button voiceButton;
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nCallbacks: "+CaptureService.callbacks+
    "\nImágenes recibidas: "+CaptureService.received+"\nImágenes analizadas: "+CaptureService.frames+
@@ -61,11 +66,34 @@ public class MainActivity extends Activity {
   HorizontalScrollView hs=new HorizontalScrollView(this);
   historyView=new LinearLayout(this);historyView.setOrientation(LinearLayout.HORIZONTAL);
   hs.addView(historyView);content.addView(hs);
+  voiceButton=new Button(this);voiceButton.setText("Probar voz CONTROL");content.addView(voiceButton);
+  voiceButton.setEnabled(false);
+  voiceButton.setOnClickListener(v->speakTest());
+  voice=new TextToSpeech(this,status->{
+   if(status==TextToSpeech.SUCCESS && voice!=null){
+    int result=voice.setLanguage(new Locale("es","AR"));
+    if(result==TextToSpeech.LANG_MISSING_DATA || result==TextToSpeech.LANG_NOT_SUPPORTED)
+     result=voice.setLanguage(new Locale("es","ES"));
+    voiceReady=(result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED);
+    voice.setSpeechRate(1.0f);voice.setPitch(0.85f);
+   }
+   voiceButton.setEnabled(voiceReady);
+   if(!voiceReady)Toast.makeText(this,"Falta una voz española instalada en Android",Toast.LENGTH_LONG).show();
+  });
   Button start=new Button(this);start.setText("Autorizar captura");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
   start.setOnClickListener(v->requestCapture());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
   l.addView(scroll);
   setContentView(l);
+ }
+ private void speakTest(){
+  if(!voiceReady||voice==null){Toast.makeText(this,"Voz aún no disponible",Toast.LENGTH_SHORT).show();return;}
+  voice.speak("Wolf, soy CONTROL. Mi voz está funcionando. La captura sigue siendo un sistema independiente.",TextToSpeech.QUEUE_FLUSH,null,"control_test");
+ }
+ @Override protected void onDestroy(){
+  h.removeCallbacks(refresh);
+  if(voice!=null){voice.stop();voice.shutdown();voice=null;}
+  super.onDestroy();
  }
  private void requestCapture(){
   if(CaptureService.active){Toast.makeText(this,"Detené la sesión anterior",Toast.LENGTH_SHORT).show();return;}
