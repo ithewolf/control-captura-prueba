@@ -11,13 +11,13 @@ public class MainActivity extends Activity {
  private TextView label; private final Handler h=new Handler(Looper.getMainLooper());
  private long before=-1;
  private final Runnable refresh=new Runnable(){public void run(){
-  label.setText("Estado: "+CaptureService.status+"\nCuadros: "+CaptureService.frames+
+  label.setText("Estado: "+CaptureService.status+"\nCallbacks: "+CaptureService.callbacks+\n   "\nImágenes recibidas: "+CaptureService.received+"\nImágenes analizadas: "+CaptureService.frames+
    "\nCambios: "+CaptureService.changes+"\nOscuros: "+CaptureService.darkFrames+
    "\nTamaño: "+CaptureService.width+" x "+CaptureService.height+
    "\nCuadros desde salida: "+(before<0?"sin medición":Math.max(0,CaptureService.frames-before))+
    "\nError: "+CaptureService.error);
   android.content.SharedPreferences snap=getSharedPreferences("capture_diagnostics",MODE_PRIVATE);
-  label.append("\nÚltimo registro guardado: cuadros "+snap.getLong("frames",0)+
+  label.append("\nÚltimo registro guardado: callbacks "+snap.getLong("callbacks",0)+\n    " · recibidas "+snap.getLong("received",0)+\n    " · analizadas "+snap.getLong("frames",0)+
     " · cambios "+snap.getLong("changes",0)+
     " · estado "+snap.getString("status","sin registro")+
     " · error "+snap.getString("error",""));
