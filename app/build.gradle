@@ -7,7 +7,8 @@ android {
 }
 
 dependencies {
- implementation 'com.alphacephei:vosk-android:0.3.47'
+ implementation 'net.java.dev.jna:jna:5.18.1@aar'
+ implementation 'com.alphacephei:vosk-android:0.3.75@aar'
 }
 
 /*
@@ -26,7 +27,7 @@ tasks.register('prepareVoskSpanishModel') {
  def outputRoot=file("$buildDir/generated/voskAssets/model-es")
  outputs.dir(outputRoot)
  doLast {
-  def marker=new File(outputRoot,'.uuid')
+  def marker=new File(outputRoot,'uuid')
   if(marker.isFile())return
   outputRoot.mkdirs()
   def modelUrl='https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip'
