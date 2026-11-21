@@ -40,6 +40,7 @@ public class MainActivity extends Activity {
    "\nResize: "+CaptureService.resizes+" · Descartadas: "+CaptureService.discarded+
    "\nÚltimo evento: "+CaptureService.lastEvent+
    "\nCambios: "+CaptureService.changes+"\nOscuros: "+CaptureService.darkFrames+
+   "\nLecturas visuales experimentales (NO son estado táctico): "+CaptureService.hudZoneTelemetry+
    "\nTamaño: "+CaptureService.width+" x "+CaptureService.height+
    "\nCuadros desde salida: "+(before<0?"sin medición":Math.max(0,CaptureService.frames-before))+
    "\nError: "+CaptureService.error);
@@ -50,6 +51,7 @@ public class MainActivity extends Activity {
     " · nulas "+snap.getLong("nullImages",0)+
     " · antiguas "+snap.getLong("staleImages",0)+
     " · resize "+snap.getLong("resizes",0)+
+    " · regiones "+snap.getString("hudZoneTelemetry","sin datos")+
     " · evento "+snap.getString("lastEvent","sin eventos")+
     " · cambios "+snap.getLong("changes",0)+
     " · estado "+snap.getString("status","sin registro")+
@@ -75,7 +77,7 @@ public class MainActivity extends Activity {
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
-  TextView title=new TextView(this);title.setText("CONTROL v22: voz latinoamericana PROVISIONAL. El botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
+  TextView title=new TextView(this);title.setText("CONTROL: compilación experimental pendiente. Voz latinoamericana PROVISIONAL. El botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
   content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
