@@ -82,13 +82,21 @@ public class MainActivity extends Activity {
   voice=new TextToSpeech(this,status->runOnUiThread(()->{
    if(status==TextToSpeech.SUCCESS && voice!=null){
     int result=voice.setLanguage(new Locale("es","AR"));
-    if(result==TextToSpeech.LANG_MISSING_DATA || result==TextToSpeech.LANG_NOT_SUPPORTED)
-     result=voice.setLanguage(new Locale("es","ES"));
+    // No cambiar automáticamente al acento de España.
     voiceReady=(result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED);
+    if(voiceReady){
+     android.speech.tts.Voice best=null;
+     java.util.Set<android.speech.tts.Voice> installed=voice.getVoices();
+     if(installed!=null)for(android.speech.tts.Voice candidate:installed){
+      java.util.Locale loc=candidate.getLocale();
+      if(loc!=null && "es".equalsIgnoreCase(loc.getLanguage()) && "AR".equalsIgnoreCase(loc.getCountry()) && !candidate.isNetworkConnectionRequired() && (best==null || candidate.getQuality()>best.getQuality()))best=candidate;
+     }
+     voiceReady=best!=null && voice.setVoice(best)==TextToSpeech.SUCCESS;
+    }
     voice.setSpeechRate(1.06f);voice.setPitch(0.88f);
    }
    voiceButton.setEnabled(voiceReady);
-   if(!voiceReady)Toast.makeText(this,"Falta una voz española instalada en Android",Toast.LENGTH_LONG).show();
+   if(!voiceReady)Toast.makeText(this,"Falta una voz argentina (es-AR) instalada en Android",Toast.LENGTH_LONG).show();
   }));
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
