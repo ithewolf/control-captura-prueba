@@ -18,7 +18,7 @@ public class MainActivity extends Activity {
  private boolean voiceReady=false;
  private Button voiceButton;
  private final Runnable refresh=new Runnable(){public void run(){
-  label.setText("Estado: "+CaptureService.status+"\nCallbacks: "+CaptureService.callbacks+
+  label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+\n   "\nÚltimo texto escuchado: "+CaptureService.lastHeard+\n   "\nRespuesta local: "+CaptureService.lastReply+\n   "\nCallbacks: "+CaptureService.callbacks+
    "\nImágenes recibidas: "+CaptureService.received+"\nImágenes analizadas: "+CaptureService.frames+
    "\nNulas: "+CaptureService.nullImages+" · Antiguas: "+CaptureService.staleImages+
    "\nResize: "+CaptureService.resizes+" · Descartadas: "+CaptureService.discarded+
@@ -80,7 +80,7 @@ public class MainActivity extends Activity {
    voiceButton.setEnabled(voiceReady);
    if(!voiceReady)Toast.makeText(this,"Falta una voz española instalada en Android",Toast.LENGTH_LONG).show();
   }));
-  Button start=new Button(this);start.setText("Autorizar captura");content.addView(start);
+  Button start=new Button(this);start.setText("Autorizar captura + micrófono");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
   start.setOnClickListener(v->requestCapture());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
   l.addView(scroll);
@@ -96,12 +96,22 @@ public class MainActivity extends Activity {
   super.onDestroy();
  }
  private void requestCapture(){
+  if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){
+   requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},78);return;
+  }
   if(CaptureService.active){Toast.makeText(this,"Detené la sesión anterior",Toast.LENGTH_SHORT).show();return;}
   MediaProjectionManager m=(MediaProjectionManager)getSystemService(MEDIA_PROJECTION_SERVICE);
   Intent request=android.os.Build.VERSION.SDK_INT>=34
    ?m.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
    :m.createScreenCaptureIntent();
   startActivityForResult(request,77);
+ }
+ @Override public void onRequestPermissionsResult(int code,String[] permissions,int[] results){
+  super.onRequestPermissionsResult(code,permissions,results);
+  if(code==78){
+   if(results.length>0 && results[0]==PackageManager.PERMISSION_GRANTED)requestCapture();
+   else Toast.makeText(this,"Sin micrófono no se podrá probar la conversación.",Toast.LENGTH_LONG).show();
+  }
  }
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);
   if(request==77 && result==RESULT_OK && data!=null){
