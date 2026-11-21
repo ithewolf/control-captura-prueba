@@ -1,7 +1,7 @@
 name: Compilar CONTROL Captura (diagnostico)
 on:
   push:
-    branches: [main, control-pantalla-completa-v10, control-diagnostico-recepcion-v11]
+    branches: [main, control-pantalla-completa-v10, control-diagnostico-recepcion-v11, control-lector-imagenes-v12]
   pull_request:
     branches: [main]
   workflow_dispatch:
