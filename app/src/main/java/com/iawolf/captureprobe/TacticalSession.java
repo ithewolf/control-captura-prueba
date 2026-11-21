@@ -32,21 +32,22 @@ public final class TacticalSession {
     }
     // Explicit declarations. Do not interpret hypothetical questions as facts.
     boolean hypothetical=s.contains("si ") || s.startsWith("y si ") || s.contains("supon");
+    boolean factChanged=false;
     if(!hypothetical) {
       if(contains(s,"no hay enemigos cerca","ningun enemigo cerca","no tengo enemigos cerca","enemigos lejos")) {
-        enemyKnown=true;enemyNear=false;enemyFactAt=nowMs;
+        enemyKnown=true;enemyNear=false;enemyFactAt=nowMs;factChanged=true;
       } else if(contains(s,"hay un enemigo cerca","hay enemigos cerca","enemigo cerca","enemigos cerca","me estan gankeando","me persiguen")) {
-        enemyKnown=true;enemyNear=true;enemyFactAt=nowMs;
+        enemyKnown=true;enemyNear=true;enemyFactAt=nowMs;factChanged=true;
       }
       if(contains(s,"estoy solo","sin aliados","no hay aliados cerca","mis aliados estan lejos")) {
-        allyKnown=true;allyNear=false;allyFactAt=nowMs;
+        allyKnown=true;allyNear=false;allyFactAt=nowMs;factChanged=true;
       } else if(contains(s,"aliados cerca","mi equipo esta conmigo","tengo apoyo cerca","mis aliados estan conmigo")) {
-        allyKnown=true;allyNear=true;allyFactAt=nowMs;
+        allyKnown=true;allyNear=true;allyFactAt=nowMs;factChanged=true;
       }
       if(contains(s,"no tengo escape","sin escape","no tengo flash","sin destello")) {
-        escapeKnown=true;escapeAvailable=false;escapeFactAt=nowMs;
+        escapeKnown=true;escapeAvailable=false;escapeFactAt=nowMs;factChanged=true;
       } else if(contains(s,"tengo flash","tengo destello","tengo escape")) {
-        escapeKnown=true;escapeAvailable=true;escapeFactAt=nowMs;
+        escapeKnown=true;escapeAvailable=true;escapeFactAt=nowMs;factChanged=true;
       }
       if(contains(s,"soy jungla","estoy jungla","juego jungla"))role="jungla";
       else if(contains(s,"soy soporte","juego soporte"))role="soporte";
@@ -64,8 +65,14 @@ public final class TacticalSession {
     TacticalBrain.Intent current=TacticalBrain.intent(s);
     boolean followup=contains(s,"y ahora","entonces","que hago","y despues","que recomendas","que me conviene");
     String question=s;
-    if(current==TacticalBrain.Intent.UNKNOWN && followup && !lastTopic.isEmpty()) {
+    if(current==TacticalBrain.Intent.UNKNOWN && !lastTopic.isEmpty() && (followup || factChanged)) {
+      // When the player adds facts, reassess the active situation immediately.
       question=lastTopic;
+    }
+    if(current==TacticalBrain.Intent.UNKNOWN && factChanged && question.equals(s)) {
+      return new TacticalBrain.Decision(TacticalBrain.Intent.UNKNOWN,
+        "Entendido. Registré ese dato para esta situación. ¿Querés evaluar una pelea, un gank o un objetivo?",
+        "dato del jugador almacenado; no supone detección visual",true);
     }
     TacticalBrain.Decision answer=TacticalBrain.decide(question,ctx);
     if(answer.intent!=TacticalBrain.Intent.UNKNOWN && answer.intent!=TacticalBrain.Intent.STATUS && answer.intent!=TacticalBrain.Intent.GREET && answer.intent!=TacticalBrain.Intent.ROLE) {
