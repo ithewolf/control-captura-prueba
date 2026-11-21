@@ -2,6 +2,9 @@ package com.iawolf.captureprobe;
 
 import android.content.Context;
 import android.content.Intent;
+import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
+import android.media.AudioManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -31,6 +34,28 @@ public final class VoiceBridge {
  private final Handler main=new Handler(Looper.getMainLooper());
  private SpeechRecognizer recognizer;
  private TextToSpeech tts;
+ private AudioManager audioManager;
+ private AudioFocusRequest focusRequest;
+ private final AudioManager.OnAudioFocusChangeListener focusListener=change->{
+  if(change==AudioManager.AUDIOFOCUS_LOSS || change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT){
+   main.post(()->{
+    if(speaking){
+     CaptureService.ttsStatus="audio interrumpido por otra aplicación";
+     CaptureService.ttsFailed++;
+     if(tts!=null)tts.stop();
+     endSpeaking();
+    }
+   });
+  }
+ };
+ private final Runnable speakingTimeout=()->{
+  if(speaking){
+   CaptureService.ttsStatus="voz sin confirmación: tiempo máximo alcanzado";
+   CaptureService.ttsFailed++;
+   if(tts!=null)tts.stop();
+   endSpeaking();
+  }
+ };
  private boolean running=false,recycling=false,speaking=false,ttsReady=false;
  private int failures=0;
  private long listeningReceivedAt=0;
@@ -161,6 +186,10 @@ public final class VoiceBridge {
    }
    CaptureService.ttsStatus="voz preparada";
    tts.setSpeechRate(1.06f);
+   AudioAttributes attrs=new AudioAttributes.Builder()
+    .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build();
+   tts.setAudioAttributes(attrs);
    tts.setPitch(0.88f);
    tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
     @Override public void onStart(String id){CaptureService.ttsStarted++;CaptureService.ttsStatus="audio TTS iniciado";}
@@ -168,15 +197,13 @@ public final class VoiceBridge {
      CaptureService.ttsCompleted++;
      CaptureService.ttsStatus="audio TTS completado";
      voiceFinishedAt=SystemClock.elapsedRealtime();
-     speaking=false;
-     schedule(900);
+     endSpeaking();
     });}
     @Override public void onError(String id){main.post(()->{
      CaptureService.ttsFailed++;
      CaptureService.ttsStatus="error de síntesis de voz";
-     speaking=false;
      voiceFinishedAt=0;
-     schedule(900);
+     endSpeaking();
     });}
    });
   }));
@@ -242,6 +269,27 @@ public final class VoiceBridge {
    else {failures=0;main.removeCallbacks(periodicRecycle);main.postDelayed(periodicRecycle,60000);}
   }
  }
+ private boolean requestFocus(){
+  try{
+   audioManager=(AudioManager)context.getSystemService(Context.AUDIO_SERVICE);
+   AudioAttributes attrs=new AudioAttributes.Builder()
+    .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+    .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build();
+   focusRequest=new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK)
+    .setAudioAttributes(attrs).setOnAudioFocusChangeListener(focusListener,main).build();
+   return audioManager!=null && audioManager.requestAudioFocus(focusRequest)==AudioManager.AUDIOFOCUS_REQUEST_GRANTED;
+  }catch(RuntimeException e){CaptureService.ttsStatus="error de foco de audio: "+e.getClass().getSimpleName();return false;}
+ }
+ private void releaseFocus(){
+  if(audioManager!=null && focusRequest!=null)audioManager.abandonAudioFocusRequest(focusRequest);
+  focusRequest=null;
+ }
+ private void endSpeaking(){
+  main.removeCallbacks(speakingTimeout);
+  releaseFocus();
+  speaking=false;
+  if(running && !recycling)schedule(900);
+ }
  private void say(String words){
   main.removeCallbacks(retry);
   if(!running)return;
@@ -249,12 +297,18 @@ public final class VoiceBridge {
    CaptureService.ttsStatus="respuesta escrita: no hay voz latina compatible";
    schedule(750);return;
   }
+  if(!requestFocus()){
+   CaptureService.ttsStatus="Android no concedió foco de audio";
+   releaseFocus();schedule(900);return;
+  }
   speaking=true;
   CaptureService.ttsStatus="enviando respuesta a voz latina provisional";
+  main.removeCallbacks(speakingTimeout);
+  main.postDelayed(speakingTimeout,25000);
   if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")==TextToSpeech.ERROR){
    CaptureService.ttsFailed++;
    CaptureService.ttsStatus="falló reproducción de voz";
-   speaking=false;voiceFinishedAt=0;schedule(900);
+   voiceFinishedAt=0;endSpeaking();
   }
  }
  private void schedule(long delay){
@@ -281,6 +335,8 @@ public final class VoiceBridge {
    main.removeCallbacks(retry);
    main.removeCallbacks(periodicRecycle);
    main.removeCallbacks(resumeAfterRecycle);
+   main.removeCallbacks(speakingTimeout);
+   releaseFocus();
    if(recognizer!=null){
     try{recognizer.cancel();recognizer.destroy();}catch(Exception ignored){}
     recognizer=null;
