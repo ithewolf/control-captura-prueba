@@ -62,7 +62,7 @@ public final class AvContext {
    return "Wolf, te escuché, pero la imagen reciente está oscura. No puedo analizar la situación.";
   if (text.contains("estado") || text.contains("ves") || text.contains("pantalla"))
    return "Wolf, te escucho y recibí una imagen reciente. Todavía no reconozco campeones ni situaciones tácticas.";
-  if ("toxico".equals(mode)) return "Te escuché, Wolf. No te voy a vender humo sobre la partida... ¡aunque vos hoy venís con ganas de mandarte una, eh!";
+  if ("companero".equals(mode)) return "Te escuché, Wolf. No te voy a vender humo sobre la partida... ¡aunque vos hoy viniste a divertirte, eh!";
   return "Te escuché, Wolf. Tengo una imagen reciente, pero todavía no puedo darte un consejo táctico confiable.";
  }
 }
