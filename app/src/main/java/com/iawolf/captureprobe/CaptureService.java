@@ -40,6 +40,8 @@ public class CaptureService extends Service {
  public static volatile boolean active=false;
  public static volatile String status="detenido",error="";
  public static volatile String audioStatus="sin iniciar",lastHeard="",lastReply="";
+ public static volatile String ttsStatus="sin iniciar",ttsVoice="sin seleccionar";
+ public static volatile int speechErrors=0,ttsStarted=0,ttsCompleted=0,ttsFailed=0;
  // Prueba verificable de simultaneidad: recepciones de imagen durante una escucha.
  public static volatile long listenAttempts=0,recognizedPhrases=0,framesDuringLastListen=0;
  public static volatile long voiceRestarts=0,sessionStartedAt=0;
@@ -77,7 +79,8 @@ public class CaptureService extends Service {
   .putString("lastEvent",lastEvent)
   .putInt("width",width).putInt("height",height)
   .putString("status",status).putString("error",error)
-  .putString("audioStatus",audioStatus)
+  .putString("audioStatus",audioStatus).putString("ttsStatus",ttsStatus).putString("ttsVoice",ttsVoice)
+  .putInt("speechErrors",speechErrors).putInt("ttsStarted",ttsStarted).putInt("ttsCompleted",ttsCompleted).putInt("ttsFailed",ttsFailed)
   .putLong("updated",System.currentTimeMillis()).apply();}
 
  @Override public IBinder onBind(Intent i){return null;}
@@ -99,7 +102,7 @@ public class CaptureService extends Service {
   active=true;stopping=false;frames=changes=darkFrames=callbacks=received=0;
   nullImages=staleImages=resizes=discarded=0;lastEvent="Inicio";status="iniciando";error="";seen=false;lastAt=0;
   previewFrame=null;previewAt=0;clearRecentFrames();
-  audioStatus="iniciando";lastHeard="";lastReply="";
+  audioStatus="iniciando";lastHeard="";lastReply="";ttsStatus="iniciando";ttsVoice="sin seleccionar";speechErrors=ttsStarted=ttsCompleted=ttsFailed=0;
   listenAttempts=recognizedPhrases=framesDuringLastListen=voiceRestarts=0;
   sessionStartedAt=SystemClock.elapsedRealtime();lastAudioRecoveryMs=-1;
   simultaneousAvObserved=false;
