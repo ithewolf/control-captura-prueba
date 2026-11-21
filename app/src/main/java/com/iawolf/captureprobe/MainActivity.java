@@ -26,6 +26,7 @@ public class MainActivity extends Activity {
    "\nImágenes recibidas durante última escucha: "+CaptureService.framesDuringLastListen+
    "\nAudio + imagen simultáneos: "+(CaptureService.simultaneousAvObserved?"observados":"sin confirmar")+
    "\nReinicios del motor de voz: "+CaptureService.voiceRestarts+
+   "\nVuelta a escuchar después de hablar (ms): "+(CaptureService.lastAudioRecoveryMs<0?"aún sin medir":CaptureService.lastAudioRecoveryMs)+
    "\nSesión activa (min): "+(CaptureService.active?((SystemClock.elapsedRealtime()-CaptureService.sessionStartedAt)/60000):0)+
    "\nCallbacks: "+CaptureService.callbacks+
    "\nImágenes recibidas: "+CaptureService.received+"\nImágenes analizadas: "+CaptureService.frames+
