@@ -1,0 +1,46 @@
+name: CONTROL cerebro - pruebas previas (sin APK)
+
+on:
+  push:
+    branches:
+      - control-integracion-av-preapk
+    paths:
+      - 'app/src/main/java/com/iawolf/captureprobe/AvContext.java'
+      - 'app/src/main/java/com/iawolf/captureprobe/FrameSampler.java'
+      - 'tests/**'
+      - 'tools/**'
+      - '.github/workflows/brain-preflight.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-logic:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Obtener código
+        uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Probar contexto audiovisual y protección anti-alucinaciones
+        run: |
+          mkdir -p build/smoke
+          javac -encoding UTF-8 -d build/smoke \
+            app/src/main/java/com/iawolf/captureprobe/AvContext.java \
+            tests/AvContextSmokeTest.java
+          java -cp build/smoke com.iawolf.captureprobe.AvContextSmokeTest
+      - name: Probar muestreo de imagen
+        run: |
+          javac -encoding UTF-8 -d build/smoke \
+            app/src/main/java/com/iawolf/captureprobe/FrameSampler.java \
+            tests/FrameSamplerSmokeTest.java
+          java -cp build/smoke com.iawolf.captureprobe.FrameSamplerSmokeTest
+      - name: Validar evaluador de visión con casos sintéticos
+        run: |
+          python3 -m py_compile tools/evaluate_yasuo.py
+          python3 -m unittest discover -s tests -p 'test_*.py' -v
