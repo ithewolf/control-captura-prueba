@@ -21,6 +21,10 @@ public class MainActivity extends Activity {
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
    "\nÚltimo texto escuchado: "+CaptureService.lastHeard+
    "\nRespuesta local: "+CaptureService.lastReply+
+   "\nIntentos de escucha: "+CaptureService.listenAttempts+
+   " · Frases reconocidas: "+CaptureService.recognizedPhrases+
+   "\nImágenes recibidas durante última escucha: "+CaptureService.framesDuringLastListen+
+   "\nAudio + imagen simultáneos: "+(CaptureService.simultaneousAvObserved?"observados":"sin confirmar")+
    "\nCallbacks: "+CaptureService.callbacks+
    "\nImágenes recibidas: "+CaptureService.received+"\nImágenes analizadas: "+CaptureService.frames+
    "\nNulas: "+CaptureService.nullImages+" · Antiguas: "+CaptureService.staleImages+
@@ -62,14 +66,14 @@ public class MainActivity extends Activity {
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
-  TextView title=new TextView(this);title.setText("Vista previa local (solo memoria)");content.addView(title);
+  TextView title=new TextView(this);title.setText("Prueba de audio + video: no interpreta aún el juego. La escucha de prueba dura 3 minutos, tras autorizarla.");content.addView(title);
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
   content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
   HorizontalScrollView hs=new HorizontalScrollView(this);
   historyView=new LinearLayout(this);historyView.setOrientation(LinearLayout.HORIZONTAL);
   hs.addView(historyView);content.addView(hs);
-  voiceButton=new Button(this);voiceButton.setText("Probar voz CONTROL");content.addView(voiceButton);
+  voiceButton=new Button(this);voiceButton.setText("Probar voz de Android (independiente)");content.addView(voiceButton);
   voiceButton.setEnabled(false);
   voiceButton.setOnClickListener(v->speakTest());
   voice=new TextToSpeech(this,status->runOnUiThread(()->{
