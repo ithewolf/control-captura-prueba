@@ -99,9 +99,12 @@ public class CaptureService extends Service {
   reader.setOnImageAvailableListener(src->frame(src),images);
  }
  private void resize(int w,int h){
-  if(!active||display==null||stopping)return;
+  if(!active||display==null||stopping||w<2||h<2)return;
+  // Android can repeatedly report the same captured-content size after setSurface().
+  // Never recreate the ImageReader for a no-op resize.
+  if(w==width&&h==height)return;
   try{
-   resizes++;lastEvent="resize "+w+"x"+h;saveSnapshot();
+   resizes++;lastEvent="resize real "+w+"x"+h;saveSnapshot();
    display.setSurface(null);ImageReader old=reader;
    createReader(w,h);display.resize(width,height,getResources().getDisplayMetrics().densityDpi);
    display.setSurface(reader.getSurface());images.post(old::close);
