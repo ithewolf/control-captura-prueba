@@ -158,6 +158,7 @@ public final class VoiceBridge {
     return;
    }
    running=true;recycling=false;speaking=false;failures=0;
+   ControlBrain.resetSession();
    try{
     createRecognizer();
     initTts();
