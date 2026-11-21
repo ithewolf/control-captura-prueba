@@ -43,6 +43,8 @@ public class CaptureService extends Service {
  // Prueba verificable de simultaneidad: recepciones de imagen durante una escucha.
  public static volatile long listenAttempts=0,recognizedPhrases=0,framesDuringLastListen=0;
  public static volatile long voiceRestarts=0,sessionStartedAt=0;
+ // Tiempo medido desde que la voz termina hasta que Android avisa que vuelve a escuchar.
+ public static volatile long lastAudioRecoveryMs=-1;
  public static volatile boolean simultaneousAvObserved=false;
  private VoiceBridge voiceBridge;
  private final Handler main=new Handler(Looper.getMainLooper());
@@ -69,6 +71,7 @@ public class CaptureService extends Service {
   .putLong("listenAttempts",listenAttempts)
   .putLong("recognizedPhrases",recognizedPhrases)
   .putLong("voiceRestarts",voiceRestarts)
+  .putLong("lastAudioRecoveryMs",lastAudioRecoveryMs)
   .putLong("framesDuringLastListen",framesDuringLastListen)
   .putBoolean("simultaneousAvObserved",simultaneousAvObserved)
   .putString("lastEvent",lastEvent)
@@ -98,7 +101,7 @@ public class CaptureService extends Service {
   previewFrame=null;previewAt=0;clearRecentFrames();
   audioStatus="iniciando";lastHeard="";lastReply="";
   listenAttempts=recognizedPhrases=framesDuringLastListen=voiceRestarts=0;
-  sessionStartedAt=SystemClock.elapsedRealtime();
+  sessionStartedAt=SystemClock.elapsedRealtime();lastAudioRecoveryMs=-1;
   simultaneousAvObserved=false;
   try{
    boolean audioAllowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
