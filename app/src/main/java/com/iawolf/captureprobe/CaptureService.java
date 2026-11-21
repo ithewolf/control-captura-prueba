@@ -19,6 +19,17 @@ public class CaptureService extends Service {
  private MediaProjection projection;private VirtualDisplay display;private ImageReader reader;
  private long hash=0,lastAt=0;private boolean seen=false,stopping=false;
  private final String CHANNEL="control-probe";
+ private volatile long latestFrameAt=0;
+ private final Runnable monitor=new Runnable(){@Override public void run(){
+  if(!active||stopping)return;
+  long elapsed=SystemClock.elapsedRealtime()-latestFrameAt;
+  if(elapsed>=15000){
+   status="sin cuadros recientes";
+   error="No llegaron cuadros nuevos en "+(elapsed/1000)+" segundos";
+   saveSnapshot();
+  }
+  main.postDelayed(this,5000);
+ }};
  private void saveSnapshot(){getSharedPreferences("capture_diagnostics",MODE_PRIVATE).edit()
   .putLong("frames",frames).putLong("changes",changes).putLong("dark",darkFrames)
   .putInt("width",width).putInt("height",height)
@@ -62,7 +73,8 @@ public class CaptureService extends Service {
    createReader(metrics.widthPixels,metrics.heightPixels);
    display=projection.createVirtualDisplay("CONTROL diagnosis",width,height,metrics.densityDpi,
     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,reader.getSurface(),null,images);
-   status="capturando";
+   status="capturando";latestFrameAt=SystemClock.elapsedRealtime();
+   main.postDelayed(monitor,15000);
    main.postDelayed(()->{if(active)stopNow();},600000);
    main.postDelayed(()->{if(active&&frames==0){error="No llegaron cuadros en 12 segundos";status="sin cuadros";}},12000);
   }catch(Exception e){error=e.toString();status="error";saveSnapshot();stopNow();}
@@ -91,7 +103,8 @@ public class CaptureService extends Service {
    Image.Plane p=img.getPlanes()[0];ByteBuffer b=p.getBuffer();
    FrameSampler.Result data=FrameSampler.sample(b,img.getWidth(),img.getHeight(),p.getRowStride(),p.getPixelStride());
    if(seen&&hash!=data.fingerprint)changes++;
-   hash=data.fingerprint;seen=true;frames++;if(data.dark)darkFrames++;
+   hash=data.fingerprint;seen=true;frames++;latestFrameAt=now;if(data.dark)darkFrames++;
+   if(status.equals("sin cuadros recientes")){status="capturando";error="";}
    if(frames==1){status="capturando";error="";}
    if(frames==1||frames%5==0)saveSnapshot();
    if(frames%5==0)main.post(()->{
@@ -102,6 +115,7 @@ public class CaptureService extends Service {
  }
  private void stopNow(){
   if(stopping)return;stopping=true;active=false;
+  main.removeCallbacks(monitor);
   if(display!=null){display.release();display=null;}
   if(reader!=null){reader.close();reader=null;}
   if(projection!=null){MediaProjection p=projection;projection=null;p.stop();}
