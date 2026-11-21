@@ -12,7 +12,8 @@ public final class TacticalSessionTest {
     TacticalBrain.Decision d=s.respond("me están gankeando",true,22,1000);
     expect(d.intent==TacticalBrain.Intent.GANK,"detectar gank");
     d=s.respond("estoy solo",true,25,2000);
-    expect(d.intent==TacticalBrain.Intent.UNKNOWN,"declaración no supone una pregunta");
+    expect(d.intent==TacticalBrain.Intent.GANK,"revisar gank al recibir nuevo dato");
+    expect(d.answer.contains("amenaza cerca"),"mantener advertencia al ampliar contexto");
     d=s.respond("y ahora qué hago",true,30,3000);
     expect(d.intent==TacticalBrain.Intent.GANK,"recordar tema anterior");
     expect(d.answer.contains("amenaza cerca"),"conservar enemigo próximo");
@@ -61,6 +62,16 @@ public final class TacticalSessionTest {
     expect("jungla".equals(s.currentRole()),"persistencia de rol jungla");
     d=s.respond("y ahora que hago",true,0,900_100);
     expect(d.intent==TacticalBrain.Intent.UNKNOWN,"declarar rol no inventa un tema anterior");
+    s.reset();
+    d=s.respond("tengo aliados cerca",true,10,950_000);
+    expect(d.answer.contains("Registré ese dato"),"confirmar dato sin inventar una pelea");
+    expect(d.needsMoreContext,"no atribuir decisión a dato aislado");
+    s.reset();
+    d=s.respond("me están gankeando",true,20,960_000);
+    d=s.respond("estoy solo",true,22,960_200);
+    expect(d.intent==TacticalBrain.Intent.GANK,"hecho nuevo revisa el gank activo");
+    d=s.respond("y ahora que hago",true,22,960_300);
+    expect(d.intent==TacticalBrain.Intent.GANK,"seguimiento conserva tema revisado");
     System.out.println("TacticalSessionTest: "+checks+" comprobaciones correctas");
   }
 }
