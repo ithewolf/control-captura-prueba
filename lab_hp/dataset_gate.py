@@ -46,9 +46,15 @@ def audit(manifest,root,max_hash_distance=3):
     issues=[]
     for i,row in enumerate(manifest):
         if not isinstance(row,dict):raise ValueError(f"row {i}: not an object")
-        for key in ("image","labels","source_video","scene_id","split"):
+        for key in ("image","source_video","scene_id","split"):
             if not isinstance(row.get(key),str) or not row[key].strip():
                 raise ValueError(f"row {i}: missing {key}")
+        # Official YOLO format accepts absent labels for negatives, but only
+        # permit that when the manifest explicitly marks an empty-label image.
+        if "labels" not in row or not isinstance(row["labels"],str) or not row["labels"].strip():
+            raise ValueError(f"row {i}: labels path required for audit")
+        if "negative" in row and type(row["negative"]) is not bool:
+            raise ValueError(f"row {i}: negative must be bool")
         split=row["split"]
         if split not in SPLITS:raise ValueError(f"row {i}: invalid split")
         image=(root/row["image"]).resolve();lbl=(root/row["labels"]).resolve()
@@ -56,9 +62,17 @@ def audit(manifest,root,max_hash_distance=3):
             raise ValueError(f"row {i}: path outside dataset")
         if image in images:raise ValueError(f"row {i}: repeated image")
         images.add(image)
-        if not image.is_file() or not lbl.is_file():
-            raise ValueError(f"row {i}: missing file")
-        label_counts.update(labels_ok(lbl));count[split]+=1
+        if not image.is_file():
+            raise ValueError(f"row {i}: missing image")
+        if lbl.is_file():
+            counts=labels_ok(lbl)
+            if row.get("negative",False) and sum(counts.values())>0:
+                raise ValueError(f"row {i}: negative frame contains labels")
+        elif row.get("negative",False):
+            counts=Counter()  # YOLO permits missing txt for background.
+        else:
+            raise ValueError(f"row {i}: missing labels without negative flag")
+        label_counts.update(counts);count[split]+=1
         videos[row["source_video"]].add(split)
         scenes[(row["source_video"],row["scene_id"])].add(split)
         fingerprints.append((split,dhash(image)))
