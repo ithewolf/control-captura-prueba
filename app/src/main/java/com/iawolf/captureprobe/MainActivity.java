@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.media.projection.MediaProjectionManager;
+import android.media.projection.MediaProjectionConfig;
 import android.os.*;
 import android.widget.*;
 public class MainActivity extends Activity {
@@ -28,7 +29,10 @@ public class MainActivity extends Activity {
  private void requestCapture(){
   if(CaptureService.active){Toast.makeText(this,"Detené la sesión anterior",Toast.LENGTH_SHORT).show();return;}
   MediaProjectionManager m=(MediaProjectionManager)getSystemService(MEDIA_PROJECTION_SERVICE);
-  startActivityForResult(m.createScreenCaptureIntent(),77);
+  Intent request=android.os.Build.VERSION.SDK_INT>=34
+   ?m.createScreenCaptureIntent(MediaProjectionConfig.createConfigForDefaultDisplay())
+   :m.createScreenCaptureIntent();
+  startActivityForResult(request,77);
  }
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);
   if(request==77 && result==RESULT_OK && data!=null){
