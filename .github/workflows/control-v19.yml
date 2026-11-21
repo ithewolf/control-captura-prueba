@@ -1,7 +1,7 @@
 name: Compilar CONTROL v19 voz compatible
 on:
   push:
-    branches: [control-audio-continuo-v19]
+    branches: [control-voz-compatible-v19]
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -26,6 +26,6 @@ jobs:
       - name: Publicar APK
         uses: actions/upload-artifact@v4
         with:
-          name: CONTROL-v19-Sesiones-Largas-Debug
+          name: CONTROL-v19-Voz-Compatible-Debug
           path: app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
