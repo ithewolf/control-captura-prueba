@@ -80,8 +80,10 @@ public class MainActivity extends Activity {
   HorizontalScrollView hs=new HorizontalScrollView(this);
   historyView=new LinearLayout(this);historyView.setOrientation(LinearLayout.HORIZONTAL);
   hs.addView(historyView);content.addView(hs);
-  chooseVoiceButton=new Button(this);chooseVoiceButton.setText("Elegir o instalar voz de CONTROL");content.addView(chooseVoiceButton);
+  chooseVoiceButton=new Button(this);chooseVoiceButton.setText("Voces instaladas en tu dispositivo");content.addView(chooseVoiceButton);
   chooseVoiceButton.setOnClickListener(v->showVoiceChooser());
+  Button downloadVoices=new Button(this);downloadVoices.setText("Voces para descargar");content.addView(downloadVoices);
+  downloadVoices.setOnClickListener(v->showDownloadOptions());
   voiceButton=new Button(this);voiceButton.setText("Probar ALTAVOZ / voz sintetizada (no micrófono)");content.addView(voiceButton);
   voiceButton.setEnabled(false);
   voiceButton.setOnClickListener(v->speakTest());
@@ -92,7 +94,7 @@ public class MainActivity extends Activity {
    }
    voiceButton.setEnabled(voiceReady);
    // No mostrar aviso cada vez que se abre la app. STT y captura son independientes.
-   if(!voiceReady)voiceButton.setText("Sin voz latina compatible (prueba desactivada)");
+   if(!voiceReady)voiceButton.setText("Sin voz seleccionada (prueba desactivada)");
    if(!getSharedPreferences("control_voice_settings",MODE_PRIVATE).getBoolean("voice_setup_seen",false)){
     getSharedPreferences("control_voice_settings",MODE_PRIVATE).edit().putBoolean("voice_setup_seen",true).apply();
     showVoiceChooser();
@@ -113,8 +115,7 @@ public class MainActivity extends Activity {
   if(voice==null || voice.getVoices()==null)return result;
   for(android.speech.tts.Voice item:voice.getVoices()){
    Locale loc=item.getLocale();
-   if(loc==null || !"es".equalsIgnoreCase(loc.getLanguage()))continue;
-   if("ES".equalsIgnoreCase(loc.getCountry()))continue;
+   if(loc==null || item.isNetworkConnectionRequired())continue;
    result.add(item);
   }
   java.util.Collections.sort(result,(a,b)->{
@@ -142,9 +143,9 @@ public class MainActivity extends Activity {
   java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices();
   if(options.isEmpty()){
    new android.app.AlertDialog.Builder(this)
-    .setTitle("CONTROL no encontró una voz compatible")
-    .setMessage("Podés instalar datos de voz desde Android. No se descargará nada sin tu autorización. La escucha y captura seguirán funcionando aunque no haya voz.")
-    .setPositiveButton("Instalar voces", (d,w)->openVoiceInstaller())
+    .setTitle("Sin voces locales disponibles")
+    .setMessage("No encontramos voces locales enumeradas por el motor actual. Podés abrir las opciones para descargar voces. La escucha y captura siguen disponibles.")
+    .setPositiveButton("Voces para descargar", (d,w)->showDownloadOptions())
     .setNegativeButton("Seguir sin voz",null).show();
    return;
   }
@@ -155,7 +156,7 @@ public class MainActivity extends Activity {
       (v.isNetworkConnectionRequired()?" (requiere internet)":" (sin conexión)");
   }
   new android.app.AlertDialog.Builder(this)
-   .setTitle("Elegí la voz de CONTROL")
+   .setTitle("Voces instaladas en tu dispositivo")
    .setSingleChoiceItems(names,-1,(dialog,which)->{
     android.speech.tts.Voice candidate=options.get(which);
     if(voice.setVoice(candidate)==TextToSpeech.SUCCESS){
@@ -166,7 +167,14 @@ public class MainActivity extends Activity {
     }else Toast.makeText(this,"No se pudo seleccionar esta voz",Toast.LENGTH_SHORT).show();
     dialog.dismiss();
    })
-   .setNeutralButton("Instalar otras voces",(d,w)->openVoiceInstaller())
+   .setNeutralButton("Voces para descargar",(d,w)->showDownloadOptions())
+   .setNegativeButton("Cancelar",null).show();
+ }
+ private void showDownloadOptions(){
+  new android.app.AlertDialog.Builder(this)
+   .setTitle("Voces para descargar")
+   .setMessage("Podés abrir el instalador del motor de voz Android para buscar y descargar voces. La descarga ocurre fuera de CONTROL y depende del catálogo del proveedor. La descarga de modelos propios dentro de CONTROL todavía no está implementada.")
+   .setPositiveButton("Abrir catálogo de Android",(dialog,which)->openVoiceInstaller())
    .setNegativeButton("Cancelar",null).show();
  }
  private void openVoiceInstaller(){
