@@ -113,7 +113,7 @@ public final class VoiceBridge {
    CaptureService.lastHeard=heard;
    CaptureService.audioStatus="frase reconocida";
    String reply=ControlBrain.replyTo(heard,CaptureService.active,CaptureService.frames,CaptureService.changes);
-   if(reply==null){schedule(650);return;}
+   if(reply==null){CaptureService.audioStatus="frase sin activación CONTROL: "+heard;schedule(650);return;}
    CaptureService.lastReply=reply;
    say(reply);
   }
@@ -157,9 +157,9 @@ public final class VoiceBridge {
    // No usar español de España como alternativa automática.
    ttsReady=result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED;
    if(!ttsReady){CaptureService.audioStatus="no hay voz argentina instalada";return;}
-   if(!chooseOfflineSpanishVoice()){
+   if(!chooseArgentineVoice()){
     ttsReady=false;
-    CaptureService.audioStatus="no hay voz argentina sin conexión: instalar voz es-AR";
+    CaptureService.audioStatus="no hay voz argentina es-AR disponible: respuesta solo escrita";
     return;
    }
    tts.setSpeechRate(1.06f);
@@ -167,12 +167,13 @@ public final class VoiceBridge {
    tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
     @Override public void onStart(String id){}
     @Override public void onDone(String id){main.post(()->{
+     CaptureService.audioStatus="respuesta por voz finalizada";
      voiceFinishedAt=SystemClock.elapsedRealtime();
      speaking=false;
      schedule(900);
     });}
     @Override public void onError(String id){main.post(()->{
-     // En un error la voz puede no haber terminado de reproducirse.
+     CaptureService.audioStatus="error de síntesis de voz argentina";
      speaking=false;
      voiceFinishedAt=0;
      schedule(900);
@@ -190,8 +191,8 @@ public final class VoiceBridge {
    Voice best=null;int score=Integer.MIN_VALUE;
    for(Voice v:voices){
     Locale l=v.getLocale();
-    if(l==null || !"es".equalsIgnoreCase(l.getLanguage()) || !"AR".equalsIgnoreCase(l.getCountry()) || v.isNetworkConnectionRequired())continue;
-    int n=v.getQuality()*10;
+    if(l==null || !"es".equalsIgnoreCase(l.getLanguage()) || !"AR".equalsIgnoreCase(l.getCountry()))continue;
+    int n=v.getQuality()*10+(v.isNetworkConnectionRequired()?-1:2);
     // Android TTS no informa género; elegimos calidad, nunca acento es-ES.
     if(best==null || n>score){best=v;score=n;}
    }
@@ -227,12 +228,13 @@ public final class VoiceBridge {
   main.removeCallbacks(retry);
   if(!running)return;
   if(tts==null || !ttsReady){
-   CaptureService.audioStatus="texto reconocido, TTS no disponible";
+   CaptureService.audioStatus="respuesta escrita; voz argentina es-AR no disponible";
    schedule(750);return;
   }
   speaking=true;
-  CaptureService.audioStatus="respondiendo por voz provisional";
+  CaptureService.audioStatus="enviando respuesta a voz argentina";
   if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")==TextToSpeech.ERROR){
+   CaptureService.audioStatus="falló reproducción de voz";
    speaking=false;voiceFinishedAt=0;schedule(900);
   }
  }
