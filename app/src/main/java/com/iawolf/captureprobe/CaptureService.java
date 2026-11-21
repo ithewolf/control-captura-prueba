@@ -10,7 +10,7 @@ import android.os.*;
 import android.util.DisplayMetrics;
 import java.nio.ByteBuffer;
 public class CaptureService extends Service {
- public static volatile long frames=0,changes=0,darkFrames=0;
+ public static volatile long frames=0,changes=0,darkFrames=0,callbacks=0,received=0;
  public static volatile int width=0,height=0;
  public static volatile boolean active=false;
  public static volatile String status="detenido",error="";
@@ -25,13 +25,14 @@ public class CaptureService extends Service {
   long elapsed=SystemClock.elapsedRealtime()-latestFrameAt;
   if(elapsed>=15000){
    status="sin cuadros recientes";
-   error="No llegaron cuadros nuevos en "+(elapsed/1000)+" segundos";
+   error="Sin imagenes nuevas durante "+(elapsed/1000)+" s. Callbacks="+callbacks+", recibidas="+received+", analizadas="+frames;
    saveSnapshot();
   }
   main.postDelayed(this,5000);
  }};
  private void saveSnapshot(){getSharedPreferences("capture_diagnostics",MODE_PRIVATE).edit()
   .putLong("frames",frames).putLong("changes",changes).putLong("dark",darkFrames)
+  .putLong("callbacks",callbacks).putLong("received",received)
   .putInt("width",width).putInt("height",height)
   .putString("status",status).putString("error",error)
   .putLong("updated",System.currentTimeMillis()).apply();}
@@ -52,7 +53,7 @@ public class CaptureService extends Service {
  @Override public int onStartCommand(Intent intent,int flags,int startId){
   if(intent==null||!"START".equals(intent.getAction())){stopNow();return START_NOT_STICKY;}
   if(active)return START_NOT_STICKY;
-  active=true;stopping=false;frames=changes=darkFrames=0;status="iniciando";error="";seen=false;lastAt=0;
+  active=true;stopping=false;frames=changes=darkFrames=callbacks=received=0;status="iniciando";error="";seen=false;lastAt=0;
   try{
    startForeground(1,notice(),ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
    Intent grant=android.os.Build.VERSION.SDK_INT>=33?
@@ -70,7 +71,13 @@ public class CaptureService extends Service {
     }
    },main);
    DisplayMetrics metrics=getResources().getDisplayMetrics();
-   createReader(metrics.widthPixels,metrics.heightPixels);
+   int screenW=metrics.widthPixels,screenH=metrics.heightPixels;
+   if(Build.VERSION.SDK_INT>=30){
+    android.view.WindowManager wm=(android.view.WindowManager)getSystemService(WINDOW_SERVICE);
+    android.graphics.Rect bounds=wm.getMaximumWindowMetrics().getBounds();
+    screenW=bounds.width();screenH=bounds.height();
+   }
+   createReader(screenW,screenH);
    display=projection.createVirtualDisplay("CONTROL diagnosis",width,height,metrics.densityDpi,
     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,reader.getSurface(),null,images);
    status="capturando";latestFrameAt=SystemClock.elapsedRealtime();
@@ -81,9 +88,8 @@ public class CaptureService extends Service {
   return START_NOT_STICKY;
  }
  private void createReader(int w,int h){
-  double scale=Math.min(1.0,640.0/Math.max(w,h));
-  width=Math.max(2,((int)(w*scale)/2)*2);height=Math.max(2,((int)(h*scale)/2)*2);
-  reader=ImageReader.newInstance(width,height,PixelFormat.RGBA_8888,2);
+  width=w;height=h;
+  reader=ImageReader.newInstance(width,height,PixelFormat.RGBA_8888,3);
   reader.setOnImageAvailableListener(src->frame(src),images);
  }
  private void resize(int w,int h){
@@ -97,20 +103,24 @@ public class CaptureService extends Service {
  private void frame(ImageReader source){
   Image img=null;
   try{
+   callbacks++;
    img=source.acquireLatestImage();
    if(img==null||!active||stopping||source!=reader)return;
-   long now=SystemClock.elapsedRealtime();if(now-lastAt<900)return;lastAt=now;
+   received++;
+   long now=SystemClock.elapsedRealtime();latestFrameAt=now;
+   if(received==1||received%5==0)saveSnapshot();
+   if(now-lastAt<900)return;lastAt=now;
    Image.Plane p=img.getPlanes()[0];ByteBuffer b=p.getBuffer();
    FrameSampler.Result data=FrameSampler.sample(b,img.getWidth(),img.getHeight(),p.getRowStride(),p.getPixelStride());
    if(seen&&hash!=data.fingerprint)changes++;
-   hash=data.fingerprint;seen=true;frames++;latestFrameAt=now;if(data.dark)darkFrames++;
+   hash=data.fingerprint;seen=true;frames++;if(data.dark)darkFrames++;
    if(status.equals("sin cuadros recientes")){status="capturando";error="";}
    if(frames==1){status="capturando";error="";}
    if(frames==1||frames%5==0)saveSnapshot();
    if(frames%5==0)main.post(()->{
     if(active)((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(1,notice());
    });
-  }catch(Exception e){error=e.toString();status="error";main.post(()->stopNow());}
+  }catch(Exception e){error=e.toString();status="error";saveSnapshot();main.post(()->stopNow());}
   finally{if(img!=null)img.close();}
  }
  private void stopNow(){
