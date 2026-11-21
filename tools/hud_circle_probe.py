@@ -26,12 +26,19 @@ def assess(path):
     found=cv2.HoughCircles(gray,cv2.HOUGH_GRADIENT,dp=1.3,minDist=20,
                           param1=110,param2=27,minRadius=8,maxRadius=45)
     counts=0
+    core_counts=0
     for x,y,_radius in ([] if found is None else found[0]):
-        if x>0.65*w and y>0.55*h:counts+=1
-    # Conservative: heuristic suggestion only; no "understands game" claim.
+        if x>0.65*w and y>0.55*h:
+            counts+=1
+            # Additional structural clue: buttons cluster toward the bottom-right
+            # rather than merely appearing somewhere over the scene.
+            if x>0.72*w and y>0.68*h:
+                core_counts+=1
+    # Calibrated only on the same two Yasuo videos. NOT independent validation.
     return {"file":str(path),"lower_right_circles":counts,
-            "player_controls_candidate":counts>=10,
-            "confidence":"unvalidated research heuristic"}
+            "bottom_right_core_circles":core_counts,
+            "player_controls_candidate":counts>=10 and core_counts>=4,
+            "confidence":"unvalidated research heuristic; requires held-out scenes"}
 
 if __name__=="__main__":
     if len(sys.argv)<2:raise SystemExit(__doc__)
