@@ -69,7 +69,7 @@ public class MainActivity extends Activity {
   voiceButton=new Button(this);voiceButton.setText("Probar voz CONTROL");content.addView(voiceButton);
   voiceButton.setEnabled(false);
   voiceButton.setOnClickListener(v->speakTest());
-  voice=new TextToSpeech(this,status->{
+  voice=new TextToSpeech(this,status->runOnUiThread(()->{
    if(status==TextToSpeech.SUCCESS && voice!=null){
     int result=voice.setLanguage(new Locale("es","AR"));
     if(result==TextToSpeech.LANG_MISSING_DATA || result==TextToSpeech.LANG_NOT_SUPPORTED)
@@ -79,7 +79,7 @@ public class MainActivity extends Activity {
    }
    voiceButton.setEnabled(voiceReady);
    if(!voiceReady)Toast.makeText(this,"Falta una voz española instalada en Android",Toast.LENGTH_LONG).show();
-  });
+  }));
   Button start=new Button(this);start.setText("Autorizar captura");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
   start.setOnClickListener(v->requestCapture());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
