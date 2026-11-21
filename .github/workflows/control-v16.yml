@@ -2,6 +2,8 @@ name: Compilar CONTROL v16 voz local
 on:
   push:
     branches: [control-voz-local-v16]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 jobs:
   apk:
