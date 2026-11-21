@@ -48,6 +48,8 @@ public class CaptureService extends Service {
  // Tiempo medido desde que la voz termina hasta que Android avisa que vuelve a escuchar.
  public static volatile long lastAudioRecoveryMs=-1;
  public static volatile boolean simultaneousAvObserved=false;
+ // Pixel telemetry only. Not HUD identification, HP, skill state or tactical vision.
+ public static volatile String hudZoneTelemetry="sin datos";
  private VoskVoiceBridge voiceBridge;
  private final Handler main=new Handler(Looper.getMainLooper());
  private HandlerThread worker;private Handler images;
@@ -76,6 +78,7 @@ public class CaptureService extends Service {
   .putLong("lastAudioRecoveryMs",lastAudioRecoveryMs)
   .putLong("framesDuringLastListen",framesDuringLastListen)
   .putBoolean("simultaneousAvObserved",simultaneousAvObserved)
+  .putString("hudZoneTelemetry",hudZoneTelemetry)
   .putString("lastEvent",lastEvent)
   .putInt("width",width).putInt("height",height)
   .putString("status",status).putString("error",error)
@@ -105,7 +108,7 @@ public class CaptureService extends Service {
   audioStatus="iniciando";lastHeard="";lastReply="";ttsStatus="iniciando";ttsVoice="sin seleccionar";speechErrors=ttsStarted=ttsCompleted=ttsFailed=0;
   listenAttempts=recognizedPhrases=framesDuringLastListen=voiceRestarts=0;
   sessionStartedAt=SystemClock.elapsedRealtime();AvContext.reset(sessionStartedAt);lastAudioRecoveryMs=-1;
-  simultaneousAvObserved=false;
+  simultaneousAvObserved=false;hudZoneTelemetry="sin datos";
   try{
    boolean audioAllowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
    int fgType=ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION;
@@ -195,6 +198,11 @@ public class CaptureService extends Service {
    if(now-lastAt<900){discarded++;return;}lastAt=now;
    Image.Plane p=img.getPlanes()[0];ByteBuffer b=p.getBuffer();
    FrameSampler.Result data=FrameSampler.sample(b,img.getWidth(),img.getHeight(),p.getRowStride(),p.getPixelStride());
+   // Fixed-size sampled regions: no bitmap allocation or off-device traffic.
+   HudRegionSampler.Zones zones=HudRegionSampler.sample(b,img.getWidth(),img.getHeight(),p.getRowStride(),p.getPixelStride());
+   hudZoneTelemetry="mapa(media="+zones.mapMean+",contraste="+zones.mapContrast+") "+
+       "controles(media="+zones.controlsMean+",contraste="+zones.controlsContrast+") "+
+       "centro(media="+zones.centerMean+")";
    // Un fotograma visual cada 3 segundos; no altera la tasa de captura.
    if(now-previewAt>=3000){
     try{Bitmap next=makePreview(img,p);addRecentFrame(next);previewFrame=next;previewAt=now;}
