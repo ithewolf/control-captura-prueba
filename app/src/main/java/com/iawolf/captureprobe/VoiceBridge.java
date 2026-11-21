@@ -154,11 +154,14 @@ public final class VoiceBridge {
     CaptureService.audioStatus="TTS provisional no disponible";return;
    }
    int result=tts.setLanguage(new Locale("es","AR"));
-   if(result==TextToSpeech.LANG_MISSING_DATA || result==TextToSpeech.LANG_NOT_SUPPORTED)
-    result=tts.setLanguage(new Locale("es","ES"));
+   // No usar español de España como alternativa automática.
    ttsReady=result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED;
-   if(!ttsReady)return;
-   chooseOfflineSpanishVoice();
+   if(!ttsReady){CaptureService.audioStatus="no hay voz argentina instalada";return;}
+   if(!chooseOfflineSpanishVoice()){
+    ttsReady=false;
+    CaptureService.audioStatus="no hay voz argentina sin conexión: instalar voz es-AR";
+    return;
+   }
    tts.setSpeechRate(1.06f);
    tts.setPitch(0.88f);
    tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
@@ -180,21 +183,20 @@ public final class VoiceBridge {
 
  // Android does not expose a gender field for TTS voices. Prefer a Spanish
  // embedded voice of higher reported quality; verify perceived gender on device.
- private void chooseOfflineSpanishVoice(){
+ private boolean chooseOfflineSpanishVoice(){
   try{
    Set<Voice> voices=tts.getVoices();
-   if(voices==null)return;
+   if(voices==null)return false;
    Voice best=null;int score=Integer.MIN_VALUE;
    for(Voice v:voices){
     Locale l=v.getLocale();
-    if(l==null || !"es".equalsIgnoreCase(l.getLanguage()) || v.isNetworkConnectionRequired())continue;
+    if(l==null || !"es".equalsIgnoreCase(l.getLanguage()) || !"AR".equalsIgnoreCase(l.getCountry()) || v.isNetworkConnectionRequired())continue;
     int n=v.getQuality()*10;
-    if("AR".equalsIgnoreCase(l.getCountry()))n+=20;
-    else if("MX".equalsIgnoreCase(l.getCountry()))n+=10;
+    // Android TTS no informa género; elegimos calidad, nunca acento es-ES.
     if(best==null || n>score){best=v;score=n;}
    }
-   if(best!=null)tts.setVoice(best);
-  }catch(Exception ignored){}
+   return best!=null && tts.setVoice(best)==TextToSpeech.SUCCESS;
+  }catch(Exception ignored){return false;}
  }
  private void finishListening(boolean recognized){
   long during=Math.max(0,CaptureService.received-listeningReceivedAt);
