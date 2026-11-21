@@ -5,8 +5,10 @@ on:
     branches: [control-cerebro-tactico-v1]
     paths:
       - 'app/src/main/java/com/iawolf/captureprobe/TacticalBrain.java'
+      - 'app/src/main/java/com/iawolf/captureprobe/TacticalSession.java'
       - 'app/src/main/java/com/iawolf/captureprobe/ControlBrain.java'
       - 'app/src/test/java/com/iawolf/captureprobe/TacticalBrainTest.java'
+      - 'app/src/test/java/com/iawolf/captureprobe/TacticalSessionTest.java'
       - '.github/workflows/control-brain-tests.yml'
   workflow_dispatch:
 
@@ -24,7 +26,11 @@ jobs:
           mkdir -p /tmp/controlbrain
           javac -encoding UTF-8 -d /tmp/controlbrain \
             app/src/main/java/com/iawolf/captureprobe/TacticalBrain.java \
+            app/src/main/java/com/iawolf/captureprobe/TacticalSession.java \
             app/src/main/java/com/iawolf/captureprobe/ControlBrain.java \
-            app/src/test/java/com/iawolf/captureprobe/TacticalBrainTest.java
+            app/src/test/java/com/iawolf/captureprobe/TacticalBrainTest.java \
+            app/src/test/java/com/iawolf/captureprobe/TacticalSessionTest.java
       - name: Run tactical test suite
-        run: java -ea -cp /tmp/controlbrain com.iawolf.captureprobe.TacticalBrainTest
+        run: |
+          java -ea -cp /tmp/controlbrain com.iawolf.captureprobe.TacticalBrainTest
+          java -ea -cp /tmp/controlbrain com.iawolf.captureprobe.TacticalSessionTest
