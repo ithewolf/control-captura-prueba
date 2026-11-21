@@ -31,6 +31,7 @@ public final class VoiceBridge {
  private boolean running=false,recycling=false,speaking=false,ttsReady=false;
  private int failures=0;
  private long listeningReceivedAt=0;
+ private long voiceFinishedAt=0;
 
  private final Runnable retry=()->listen();
  private final Runnable periodicRecycle=()->recycleRecognizer();
@@ -53,7 +54,13 @@ public final class VoiceBridge {
  };
 
  private final RecognitionListener listener=new RecognitionListener(){
-  @Override public void onReadyForSpeech(Bundle b){CaptureService.audioStatus="escuchando con Android local";}
+  @Override public void onReadyForSpeech(Bundle b){
+   if(voiceFinishedAt>0){
+    CaptureService.lastAudioRecoveryMs=Math.max(0,SystemClock.elapsedRealtime()-voiceFinishedAt);
+    voiceFinishedAt=0;
+   }
+   CaptureService.audioStatus="escuchando con Android local";
+  }
   @Override public void onBeginningOfSpeech(){CaptureService.audioStatus="voz detectada";}
   @Override public void onRmsChanged(float rms){}
   @Override public void onBufferReceived(byte[] b){}
@@ -151,8 +158,17 @@ public final class VoiceBridge {
    tts.setSpeechRate(1.0f);
    tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
     @Override public void onStart(String id){}
-    @Override public void onDone(String id){main.post(()->{speaking=false;schedule(900);});}
-    @Override public void onError(String id){main.post(()->{speaking=false;schedule(900);});}
+    @Override public void onDone(String id){main.post(()->{
+     voiceFinishedAt=SystemClock.elapsedRealtime();
+     speaking=false;
+     schedule(900);
+    });}
+    @Override public void onError(String id){main.post(()->{
+     // En un error la voz puede no haber terminado de reproducirse.
+     speaking=false;
+     voiceFinishedAt=0;
+     schedule(900);
+    });}
    });
   }));
  }
@@ -191,7 +207,7 @@ public final class VoiceBridge {
   speaking=true;
   CaptureService.audioStatus="respondiendo por voz provisional";
   if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")==TextToSpeech.ERROR){
-   speaking=false;schedule(900);
+   speaking=false;voiceFinishedAt=0;schedule(900);
   }
  }
  private void schedule(long delay){
@@ -223,7 +239,7 @@ public final class VoiceBridge {
     recognizer=null;
    }
    if(tts!=null){tts.stop();tts.shutdown();tts=null;}
-   ttsReady=false;
+   ttsReady=false;voiceFinishedAt=0;
   });
  }
 }
