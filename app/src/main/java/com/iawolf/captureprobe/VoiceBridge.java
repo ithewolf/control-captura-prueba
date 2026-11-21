@@ -32,10 +32,14 @@ public final class VoiceBridge {
  private long sessionStartedAt=0;
  // SpeechRecognizer es una prueba puntual, no escucha permanente.
  private static final long TEST_WINDOW_MS=180000L;
- private void finishListening(){
+ private final Runnable timeLimit=()->{
+  if(running){CaptureService.audioStatus="prueba local terminada (3 minutos)";stop();}
+ };
+ private void finishListening(boolean recognized){
   long during=Math.max(0,CaptureService.received-listeningReceivedAt);
   CaptureService.framesDuringLastListen=during;
-  if(during>0 && CaptureService.active)CaptureService.simultaneousAvObserved=true;
+  if(recognized && during>0 && CaptureService.active)
+   CaptureService.simultaneousAvObserved=true;
  }
  private final RecognitionListener listener=new RecognitionListener(){
   @Override public void onReadyForSpeech(Bundle b){CaptureService.audioStatus="escuchando (local)";}
@@ -45,7 +49,7 @@ public final class VoiceBridge {
   @Override public void onEndOfSpeech(){CaptureService.audioStatus="procesando voz local";}
   @Override public void onError(int error){
    if(!running)return;
-   finishListening();
+   finishListening(false);
    CaptureService.audioStatus="reconocimiento local: código "+error;
    if(error==SpeechRecognizer.ERROR_SPEECH_TIMEOUT || error==SpeechRecognizer.ERROR_NO_MATCH){
     schedule(1500);return;
@@ -66,7 +70,7 @@ public final class VoiceBridge {
   }
   @Override public void onResults(Bundle results){
    if(!running)return;
-   finishListening();
+   finishListening(true);
    failures=0;
    ArrayList<String> matches=results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
    if(matches==null || matches.isEmpty()){schedule(500);return;}
@@ -92,6 +96,7 @@ public final class VoiceBridge {
    }
    running=true;failures=0;
    sessionStartedAt=SystemClock.elapsedRealtime();
+   main.postDelayed(timeLimit,TEST_WINDOW_MS);
    try{
     recognizer=SpeechRecognizer.createOnDeviceSpeechRecognizer(context);
     recognizer.setRecognitionListener(listener);
@@ -162,6 +167,7 @@ public final class VoiceBridge {
   main.post(()->{
    running=false;speaking=false;
    main.removeCallbacks(retry);
+   main.removeCallbacks(timeLimit);
    if(recognizer!=null){
     try{recognizer.cancel();recognizer.destroy();}catch(Exception ignored){}
     recognizer=null;
