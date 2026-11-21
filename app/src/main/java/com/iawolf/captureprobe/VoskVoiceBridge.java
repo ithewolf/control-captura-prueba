@@ -1,0 +1,184 @@
+package com.iawolf.captureprobe;
+
+import android.content.Context;
+import android.media.AudioAttributes;
+import android.os.Handler;
+import android.os.Looper;
+import android.os.SystemClock;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.UtteranceProgressListener;
+import android.speech.tts.Voice;
+import org.json.JSONObject;
+import org.vosk.Model;
+import org.vosk.Recognizer;
+import org.vosk.android.RecognitionListener;
+import org.vosk.android.SpeechService;
+import org.vosk.android.StorageService;
+import java.util.Locale;
+import java.util.Set;
+
+/**
+ * Offline Vosk input + local Android TTS output. This bridge REQUIRES a bundled
+ * Spanish model under app/src/main/assets/model-es (provided at build time).
+ * Never silently falls back to Android's possibly network-based STT.
+ */
+public final class VoskVoiceBridge implements RecognitionListener {
+ private static final long RECYCLE_MS=15L*60L*1000L;
+ private final Context context;
+ private final Handler main=new Handler(Looper.getMainLooper());
+ private SpeechService speech;
+ private Model model;
+ private TextToSpeech tts;
+ private boolean running=false, speaking=false, prepared=false, ttsReady=false;
+ private long lastTtsFinished=-1L, listenFrameBaseline=0L;
+ private final Runnable recycle=()->{
+  if(!running) return;
+  CaptureService.voiceRestarts++;
+  haltListening();
+  CaptureService.audioStatus="reciclando Vosk (captura continúa)";
+  main.postDelayed(()->{if(running) beginListening();}, 1500L);
+  main.postDelayed(this::recycleNow, RECYCLE_MS);
+ };
+ private void recycleNow(){recycle.run();}
+ public VoskVoiceBridge(Context context){this.context=context.getApplicationContext();}
+
+ public void start(){
+  main.post(()->{
+   if(running)return;
+   running=true;
+   CaptureService.audioStatus="cargando modelo español Vosk sin conexión";
+   initTts();
+   try {
+    StorageService.unpack(context,"model-es","model-es", unpacked -> main.post(()->{
+      if(!running){unpacked.close();return;}
+      model=unpacked;prepared=true;beginListening();
+      main.postDelayed(recycle,RECYCLE_MS);
+    }), failure -> main.post(()->{
+      CaptureService.speechErrors++;
+      CaptureService.audioStatus="Vosk: falta el modelo español empaquetado o no pudo extraerse";
+      CaptureService.error="Modelo Vosk: "+failure.getClass().getSimpleName();
+    }));
+   }catch(Exception e){
+    CaptureService.speechErrors++;
+    CaptureService.audioStatus="No pudo cargar Vosk: "+e.getClass().getSimpleName();
+   }
+  });
+ }
+
+ private void beginListening(){
+  if(!running||!prepared||speaking||model==null||speech!=null)return;
+  try{
+   speech=new SpeechService(new Recognizer(model,16000.0f),16000.0f);
+   listenFrameBaseline=CaptureService.received;
+   CaptureService.listenAttempts++;
+   speech.startListening(this);
+   CaptureService.audioStatus="escuchando (Vosk local)";
+   if(lastTtsFinished>=0){
+    CaptureService.lastAudioRecoveryMs=SystemClock.elapsedRealtime()-lastTtsFinished;
+    lastTtsFinished=-1L;
+   }
+  }catch(Exception e){
+   CaptureService.speechErrors++;
+   CaptureService.audioStatus="Error al iniciar micrófono Vosk: "+e.getClass().getSimpleName();
+   haltListening();
+  }
+ }
+
+ private void haltListening(){
+  SpeechService old=speech;speech=null;
+  if(old!=null){
+   try{old.stop();}catch(Exception ignored){}
+   try{old.shutdown();}catch(Exception ignored){}
+  }
+ }
+
+ @Override public void onPartialResult(String json){}
+ @Override public void onResult(String json){acceptResult(json);}
+ @Override public void onFinalResult(String json){acceptResult(json);}
+ @Override public void onError(Exception e){
+  main.post(()->{
+   if(!running||speaking)return;
+   CaptureService.speechErrors++;
+   CaptureService.audioStatus="Vosk error: "+e.getClass().getSimpleName();
+   haltListening();
+   main.postDelayed(()->{if(running)beginListening();},4000L);
+  });
+ }
+ @Override public void onTimeout(){
+  main.post(()->{if(running&&!speaking){haltListening();beginListening();}});
+ }
+
+ private void acceptResult(String json){
+  main.post(()->{
+   if(!running||speaking)return;
+   String heard="";
+   try{heard=new JSONObject(json).optString("text","").trim();}catch(Exception ignored){}
+   if(heard.isEmpty())return;
+   CaptureService.recognizedPhrases++;
+   CaptureService.lastHeard=heard;
+   long during=Math.max(0L,CaptureService.received-listenFrameBaseline);
+   CaptureService.framesDuringLastListen=during;
+   if(during>0)CaptureService.simultaneousAvObserved=true;
+   AvContext.Snapshot visual=AvContext.snapshot(CaptureService.sessionStartedAt,SystemClock.elapsedRealtime());
+   String reply=AvContext.respond(heard,visual);
+   if(reply!=null){CaptureService.lastReply=reply;say(reply);}
+  });
+ }
+
+ private void initTts(){
+  tts=new TextToSpeech(context,code->main.post(()->{
+   if(!running||tts==null)return;
+   if(code!=TextToSpeech.SUCCESS){CaptureService.ttsStatus="TTS no disponible";return;}
+   Set<Voice> voices=tts.getVoices();Voice best=null;int rank=-1;
+   String saved=context.getSharedPreferences("control_voice_settings",Context.MODE_PRIVATE).getString("voice_name","");
+   if(voices!=null)for(Voice v:voices){
+     if(v.isNetworkConnectionRequired())continue;
+     Locale loc=v.getLocale();if(loc==null||!"es".equalsIgnoreCase(loc.getLanguage()))continue;
+     int score="AR".equals(loc.getCountry())?30:"MX".equals(loc.getCountry())?20:"US".equals(loc.getCountry())?10:0;
+     if(v.getName().equals(saved))score=1000;
+     if(score>rank){rank=score;best=v;}
+   }
+   if(best==null||tts.setVoice(best)!=TextToSpeech.SUCCESS){
+    CaptureService.ttsStatus="sin voz local española instalada";return;
+   }
+   ttsReady=true;
+   CaptureService.ttsVoice=best.getName()+" ("+best.getLocale().toLanguageTag()+")";
+   CaptureService.ttsStatus="TTS local preparado";
+   tts.setSpeechRate(1.06f);tts.setPitch(0.88f);
+   tts.setAudioAttributes(new AudioAttributes.Builder()
+     .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
+     .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build());
+   tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
+    @Override public void onStart(String id){CaptureService.ttsStarted++;CaptureService.ttsStatus="hablando";}
+    @Override public void onDone(String id){main.post(()->finishSpeech(true));}
+    @Override public void onError(String id){main.post(()->finishSpeech(false));}
+   });
+  }));
+ }
+
+ private void say(String words){
+  if(!ttsReady||tts==null){CaptureService.ttsStatus="respuesta disponible solo en texto";return;}
+  speaking=true;
+  haltListening(); // Never transcribe CONTROL's own TTS.
+  if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")!=TextToSpeech.SUCCESS){
+   finishSpeech(false);
+  }
+ }
+ private void finishSpeech(boolean ok){
+  if(!running)return;
+  if(ok){CaptureService.ttsCompleted++;CaptureService.ttsStatus="respuesta completada";}
+  else {CaptureService.ttsFailed++;CaptureService.ttsStatus="falló TTS";}
+  speaking=false;lastTtsFinished=SystemClock.elapsedRealtime();
+  main.postDelayed(()->{if(running)beginListening();},900L);
+ }
+
+ public void stop(){
+  main.post(()->{
+   running=false;speaking=false;prepared=false;
+   main.removeCallbacksAndMessages(null);
+   haltListening();
+   if(tts!=null){tts.stop();tts.shutdown();tts=null;}
+   if(model!=null){model.close();model=null;}
+  });
+ }
+}
