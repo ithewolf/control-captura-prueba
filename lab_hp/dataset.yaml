@@ -1,0 +1,10 @@
+# Export annotations from CVAT to a training set matching these classes.
+# Relative image paths must be assembled before training.
+path: ./dataset
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: health_bar_track
+  1: level_badge
+  2: not_a_health_bar
