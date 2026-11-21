@@ -26,4 +26,25 @@ class LabTests(unittest.TestCase):
         self.assertFalse(out["ready_for_android"])
     def test_black(self):self.assertIsNone(measure_fill(np.zeros((120,240,3),dtype=np.uint8),(40,44,181,55))["fraction"])
 
+
+    def test_nonfinite_confidence_rejected(self):
+        for confidence in (float("nan"),float("inf"),float("-inf"),1.5,-.1):
+            result=analyze(img(),[{"label":"health_bar_track","confidence":confidence,"xyxy":[40,44,181,55]}])
+            self.assertEqual(result["observations"],[])
+    def test_bad_boxes_fail_closed(self):
+        for box in (None,[],[40,44,181],["oops",44,181,55],
+                    [float("nan"),44,181,55],[40,44,400,55]):
+            result=analyze(img(),[{"label":"health_bar_track","confidence":.99,"xyxy":box}])
+            self.assertEqual(result["observations"],[])
+            self.assertEqual(result["game_state"],"UNKNOWN")
+    def test_invalid_prediction_does_not_stop_valid_prediction(self):
+        result=analyze(img(),[
+            {"label":"health_bar_track","confidence":float("nan"),"xyxy":[40,44,181,55]},
+            {"label":"health_bar_track","confidence":.99,"xyxy":[40,44,181,55]}])
+        self.assertEqual(len(result["observations"]),1)
+    def test_invalid_image_abstains(self):
+        self.assertEqual(analyze(None,[{"label":"health_bar_track","confidence":.9,"xyxy":[40,44,181,55]}])["observations"],[])
+    def test_nonprediction_is_ignored(self):
+        self.assertEqual(analyze(img(),[None,12,{"label":"health_bar_track","confidence":"invalid","xyxy":[40,44,181,55]}])["observations"],[])
+
 if __name__=="__main__":unittest.main()
