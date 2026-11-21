@@ -20,3 +20,12 @@ La integración opcional usa Ultralytics YOLO, cuya licencia AGPL-3.0/comercial 
 
 ## Objetivo de aprobación previo a Android
 Test independiente: precision >=98%, recall >=95%, error absoluto medio de relleno <=5 puntos porcentuales en pistas anotadas, medición de eventos de HP decreciente y seguimiento de identidad. Umbrales objetivos, no resultados.
+
+
+## Revisión web 21/11: formatos y ejemplos negativos
+- CVAT permite exportar `Ultralytics YOLO Detection 1.0` con cuadros normalizados; `Detection Track 1.0` es un formato distinto para seguir identidades, no debe mezclarse inadvertidamente con el de detección.
+- YOLO permite **TXT vacío o ausente** para fotogramas sin objetos. Para evitar confundir fallos de exportación con negativos, `dataset_gate.py` solo acepta archivo ausente cuando `"negative":true` aparece explícitamente en el manifiesto.
+- Etiquetar **todas** las barras visibles de las clases objetivo; omitirlas convierte objetos reales en falsos fondos que perjudican el entrenamiento.
+- Fuentes: https://docs.cvat.ai/docs/dataset_management/formats/format-yolo-ultralytics/ ; https://docs.ultralytics.com/datasets/detect ; https://docs.ultralytics.com/tasks/detect
+- Auditar datasets como **integridad**, nunca como precisión del modelo.
+- Si GitHub Actions no ejecuta, revisar ramas, disparadores, permisos y ejecución en https://docs.github.com/en/actions/how-tos/troubleshoot-workflows ; no atribuir estado de éxito sin ver el run.
