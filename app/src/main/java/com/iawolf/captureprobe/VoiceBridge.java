@@ -189,6 +189,8 @@ public final class VoiceBridge {
    Set<Voice> voices=tts.getVoices();
    if(voices==null)return false;
    Voice best=null;int score=Integer.MIN_VALUE;
+   String selected=context.getSharedPreferences("control_voice_settings",Context.MODE_PRIVATE).getString("voice_name","");
+   Voice userChoice=null;
    for(Voice candidate:voices){
     Locale locale=candidate.getLocale();
     if(locale==null || !"es".equalsIgnoreCase(locale.getLanguage()))continue;
@@ -197,10 +199,12 @@ public final class VoiceBridge {
       "MX".equalsIgnoreCase(country)?200:
       "US".equalsIgnoreCase(country)?100:-1;
     if(priority<0)continue;
+    if(candidate.getName().equals(selected))userChoice=candidate;
     int candidateScore=priority*100+candidate.getQuality()*10+
       (candidate.isNetworkConnectionRequired()?-1:2);
     if(best==null || candidateScore>score){best=candidate;score=candidateScore;}
    }
+   if(userChoice!=null)best=userChoice;
    if(best==null)return false;
    if(tts.setVoice(best)!=TextToSpeech.SUCCESS)return false;
    CaptureService.ttsVoice=best.getName()+" ("+best.getLocale().toLanguageTag()+")";
