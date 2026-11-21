@@ -29,6 +29,8 @@ jobs:
           mkdir -p /tmp/control-tests
           javac -d /tmp/control-tests app/src/main/java/com/iawolf/captureprobe/FrameSampler.java tests/com/iawolf/captureprobe/FrameSamplerTest.java
           java -cp /tmp/control-tests com.iawolf.captureprobe.FrameSamplerTest
+      - name: Instalar FFmpeg para prueba de video
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
       - name: Probar extracción de fotogramas (video sintético)
         run: |
           ffmpeg -hide_banner -loglevel error -f lavfi -i "testsrc2=size=320x180:rate=2:duration=3" -c:v mpeg4 -y /tmp/control-video-test.mp4
