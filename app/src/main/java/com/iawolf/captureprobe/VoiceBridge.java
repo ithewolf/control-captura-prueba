@@ -36,6 +36,7 @@ public final class VoiceBridge {
  private TextToSpeech tts;
  private AudioManager audioManager;
  private AudioFocusRequest focusRequest;
+ private boolean speaking=false;
  private final AudioManager.OnAudioFocusChangeListener focusListener=change->{
   if(change==AudioManager.AUDIOFOCUS_LOSS || change==AudioManager.AUDIOFOCUS_LOSS_TRANSIENT){
    main.post(()->{
@@ -56,7 +57,7 @@ public final class VoiceBridge {
    endSpeaking();
   }
  };
- private boolean running=false,recycling=false,speaking=false,ttsReady=false;
+ private boolean running=false,recycling=false,ttsReady=false;
  private int failures=0;
  private long listeningReceivedAt=0;
  private long voiceFinishedAt=0;
