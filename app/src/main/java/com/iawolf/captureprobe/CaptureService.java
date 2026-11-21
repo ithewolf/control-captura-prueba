@@ -42,6 +42,7 @@ public class CaptureService extends Service {
  public static volatile String audioStatus="sin iniciar",lastHeard="",lastReply="";
  // Prueba verificable de simultaneidad: recepciones de imagen durante una escucha.
  public static volatile long listenAttempts=0,recognizedPhrases=0,framesDuringLastListen=0;
+ public static volatile long voiceRestarts=0,sessionStartedAt=0;
  public static volatile boolean simultaneousAvObserved=false;
  private VoiceBridge voiceBridge;
  private final Handler main=new Handler(Looper.getMainLooper());
@@ -67,6 +68,7 @@ public class CaptureService extends Service {
   .putLong("resizes",resizes).putLong("discarded",discarded)
   .putLong("listenAttempts",listenAttempts)
   .putLong("recognizedPhrases",recognizedPhrases)
+  .putLong("voiceRestarts",voiceRestarts)
   .putLong("framesDuringLastListen",framesDuringLastListen)
   .putBoolean("simultaneousAvObserved",simultaneousAvObserved)
   .putString("lastEvent",lastEvent)
@@ -85,7 +87,7 @@ public class CaptureService extends Service {
    PendingIntent.FLAG_IMMUTABLE|PendingIntent.FLAG_UPDATE_CURRENT);
   return new Notification.Builder(this,CHANNEL).setSmallIcon(android.R.drawable.ic_menu_view)
    .setContentTitle("CONTROL captura audiovisual")
-   .setContentText("Cuadros "+frames+" · Cambios "+changes+" · "+status)
+   .setContentText("Pantalla y voz de prueba · "+status+" · "+frames+" cuadros")
    .setOngoing(true).addAction(new Notification.Action.Builder(null,"Detener",stop).build()).build();
  }
  @Override public int onStartCommand(Intent intent,int flags,int startId){
@@ -95,7 +97,8 @@ public class CaptureService extends Service {
   nullImages=staleImages=resizes=discarded=0;lastEvent="Inicio";status="iniciando";error="";seen=false;lastAt=0;
   previewFrame=null;previewAt=0;clearRecentFrames();
   audioStatus="iniciando";lastHeard="";lastReply="";
-  listenAttempts=recognizedPhrases=framesDuringLastListen=0;
+  listenAttempts=recognizedPhrases=framesDuringLastListen=voiceRestarts=0;
+  sessionStartedAt=SystemClock.elapsedRealtime();
   simultaneousAvObserved=false;
   try{
    boolean audioAllowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
@@ -130,7 +133,6 @@ public class CaptureService extends Service {
    if(audioAllowed){voiceBridge=new VoiceBridge(this);voiceBridge.start();}
    else audioStatus="permiso de micrófono pendiente";
    main.postDelayed(monitor,15000);
-   main.postDelayed(()->{if(active)stopNow();},600000);
    main.postDelayed(()->{if(active&&frames==0){error="No llegaron cuadros en 12 segundos";status="sin cuadros";}},12000);
   }catch(Exception e){error=e.toString();status="error";saveSnapshot();stopNow();}
   return START_NOT_STICKY;
