@@ -69,14 +69,14 @@ public class MainActivity extends Activity {
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
-  TextView title=new TextView(this);title.setText("Prueba de audio + video: no interpreta aún el juego. La escucha se reinicia cada 20 minutos con una pausa de 4 segundos; la sesión termina cuando la detenés o Android interrumpe la captura.");content.addView(title);
+  TextView title=new TextView(this);title.setText("CONTROL v19: el botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
   content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
   HorizontalScrollView hs=new HorizontalScrollView(this);
   historyView=new LinearLayout(this);historyView.setOrientation(LinearLayout.HORIZONTAL);
   hs.addView(historyView);content.addView(hs);
-  voiceButton=new Button(this);voiceButton.setText("Probar voz de Android (independiente)");content.addView(voiceButton);
+  voiceButton=new Button(this);voiceButton.setText("Probar ALTAVOZ / voz sintetizada (no micrófono)");content.addView(voiceButton);
   voiceButton.setEnabled(false);
   voiceButton.setOnClickListener(v->speakTest());
   voice=new TextToSpeech(this,status->runOnUiThread(()->{
@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
     if(result==TextToSpeech.LANG_MISSING_DATA || result==TextToSpeech.LANG_NOT_SUPPORTED)
      result=voice.setLanguage(new Locale("es","ES"));
     voiceReady=(result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED);
-    voice.setSpeechRate(1.0f);voice.setPitch(0.85f);
+    voice.setSpeechRate(1.06f);voice.setPitch(0.88f);
    }
    voiceButton.setEnabled(voiceReady);
    if(!voiceReady)Toast.makeText(this,"Falta una voz española instalada en Android",Toast.LENGTH_LONG).show();
