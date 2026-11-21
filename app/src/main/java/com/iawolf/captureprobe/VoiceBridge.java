@@ -11,6 +11,8 @@ import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.tts.TextToSpeech;
+import android.speech.tts.Voice;
+import java.util.Set;
 import android.speech.tts.UtteranceProgressListener;
 import java.util.ArrayList;
 import java.util.Locale;
@@ -19,7 +21,8 @@ import java.util.Locale;
  * Prueba de larga duración: escucha local por turnos + reinicio periódico del
  * motor STT. No es un sistema de escucha continua garantizada ni un LLM.
  *
- * No envía grabaciones; createOnDeviceSpeechRecognizer exige un motor local.
+ * Usa el motor de reconocimiento predeterminado de Android. El proveedor
+ * instalado puede procesar audio mediante red; no se promete STT offline.
  */
 public final class VoiceBridge {
  private static final long RECYCLE_MS=20L*60L*1000L;
@@ -40,7 +43,7 @@ public final class VoiceBridge {
   recycling=false;
   try{
    createRecognizer();
-   CaptureService.audioStatus="motor local reiniciado; retomando escucha";
+   CaptureService.audioStatus="motor predeterminado reiniciado; retomando escucha";
    schedule(350);
    main.postDelayed(periodicRecycle,RECYCLE_MS);
   }catch(Exception e){
@@ -59,7 +62,7 @@ public final class VoiceBridge {
     CaptureService.lastAudioRecoveryMs=Math.max(0,SystemClock.elapsedRealtime()-voiceFinishedAt);
     voiceFinishedAt=0;
    }
-   CaptureService.audioStatus="escuchando con Android local";
+   CaptureService.audioStatus="escuchando con reconocedor predeterminado";
   }
   @Override public void onBeginningOfSpeech(){CaptureService.audioStatus="voz detectada";}
   @Override public void onRmsChanged(float rms){}
@@ -75,7 +78,7 @@ public final class VoiceBridge {
    }
    if(code==SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
       code==SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE){
-    CaptureService.audioStatus="modelo local de español no disponible";
+    CaptureService.audioStatus="español no disponible en motor predeterminado (error "+code+")";
     stop();return;
    }
    if(code==SpeechRecognizer.ERROR_NO_MATCH || code==SpeechRecognizer.ERROR_SPEECH_TIMEOUT){
@@ -108,7 +111,7 @@ public final class VoiceBridge {
    finishListening(true);
    CaptureService.recognizedPhrases++;
    CaptureService.lastHeard=heard;
-   CaptureService.audioStatus="frase reconocida localmente";
+   CaptureService.audioStatus="frase reconocida";
    String reply=ControlBrain.replyTo(heard,CaptureService.active,CaptureService.frames,CaptureService.changes);
    if(reply==null){schedule(650);return;}
    CaptureService.lastReply=reply;
@@ -123,8 +126,8 @@ public final class VoiceBridge {
  public void start(){
   main.post(()->{
    if(running)return;
-   if(Build.VERSION.SDK_INT<31 || !SpeechRecognizer.isOnDeviceRecognitionAvailable(context)){
-    CaptureService.audioStatus="sin motor de reconocimiento local";
+   if(!SpeechRecognizer.isRecognitionAvailable(context)){
+    CaptureService.audioStatus="sin servicio de reconocimiento de Android";
     return;
    }
    running=true;recycling=false;speaking=false;failures=0;
@@ -141,7 +144,7 @@ public final class VoiceBridge {
  }
  private void createRecognizer(){
   if(recognizer!=null)throw new IllegalStateException("reconocedor duplicado");
-  recognizer=SpeechRecognizer.createOnDeviceSpeechRecognizer(context);
+  recognizer=SpeechRecognizer.createSpeechRecognizer(context);
   recognizer.setRecognitionListener(listener);
  }
  private void initTts(){
@@ -155,7 +158,9 @@ public final class VoiceBridge {
     result=tts.setLanguage(new Locale("es","ES"));
    ttsReady=result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED;
    if(!ttsReady)return;
-   tts.setSpeechRate(1.0f);
+   chooseOfflineSpanishVoice();
+   tts.setSpeechRate(1.06f);
+   tts.setPitch(0.88f);
    tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
     @Override public void onStart(String id){}
     @Override public void onDone(String id){main.post(()->{
@@ -172,6 +177,25 @@ public final class VoiceBridge {
    });
   }));
  }
+
+ // Android does not expose a gender field for TTS voices. Prefer a Spanish
+ // embedded voice of higher reported quality; verify perceived gender on device.
+ private void chooseOfflineSpanishVoice(){
+  try{
+   Set<Voice> voices=tts.getVoices();
+   if(voices==null)return;
+   Voice best=null;int score=Integer.MIN_VALUE;
+   for(Voice v:voices){
+    Locale l=v.getLocale();
+    if(l==null || !"es".equalsIgnoreCase(l.getLanguage()) || v.isNetworkConnectionRequired())continue;
+    int n=v.getQuality()*10;
+    if("AR".equalsIgnoreCase(l.getCountry()))n+=20;
+    else if("MX".equalsIgnoreCase(l.getCountry()))n+=10;
+    if(best==null || n>score){best=v;score=n;}
+   }
+   if(best!=null)tts.setVoice(best);
+  }catch(Exception ignored){}
+ }
  private void finishListening(boolean recognized){
   long during=Math.max(0,CaptureService.received-listeningReceivedAt);
   CaptureService.framesDuringLastListen=during;
@@ -184,12 +208,12 @@ public final class VoiceBridge {
    Intent i=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
    i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
    i.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"es-AR");
-   i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE,true);
+   i.putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE,false);
    i.putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS,false);
    listeningReceivedAt=CaptureService.received;
    recognizer.startListening(i);
    CaptureService.listenAttempts++;
-   CaptureService.audioStatus="esperando frase local";
+   CaptureService.audioStatus="esperando frase (motor predeterminado)";
   }catch(Exception e){
    CaptureService.audioStatus="excepción STT: "+e.getClass().getSimpleName();
    failures++;
