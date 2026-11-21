@@ -7,4 +7,4 @@ test: images/test
 names:
   0: health_bar_track
   1: level_badge
-  2: not_a_health_bar
+# Frames without bars are negative examples with empty YOLO label files.
