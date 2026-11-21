@@ -3,6 +3,7 @@ import android.app.*;
 import android.content.*;
 import android.content.pm.ServiceInfo;
 import android.graphics.PixelFormat;
+import android.graphics.Bitmap;
 import android.hardware.display.*;
 import android.media.*;
 import android.media.projection.*;
@@ -14,6 +15,9 @@ public class CaptureService extends Service {
  public static volatile int width=0,height=0;
  public static volatile long nullImages=0,staleImages=0,resizes=0,discarded=0;
  public static volatile String lastEvent="Sin eventos";
+ // Vista previa solo en memoria; nunca se guarda ni se transmite.
+ public static volatile Bitmap previewFrame=null;
+ public static volatile long previewAt=0;
  public static volatile boolean active=false;
  public static volatile String status="detenido",error="";
  private final Handler main=new Handler(Looper.getMainLooper());
@@ -60,6 +64,7 @@ public class CaptureService extends Service {
   if(active)return START_NOT_STICKY;
   active=true;stopping=false;frames=changes=darkFrames=callbacks=received=0;
   nullImages=staleImages=resizes=discarded=0;lastEvent="Inicio";status="iniciando";error="";seen=false;lastAt=0;
+  previewFrame=null;previewAt=0;
   try{
    startForeground(1,notice(),ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION);
    Intent grant=android.os.Build.VERSION.SDK_INT>=33?
@@ -110,6 +115,27 @@ public class CaptureService extends Service {
    display.setSurface(reader.getSurface());images.post(old::close);
   }catch(Exception e){error=e.toString();status="error";stopNow();}
  }
+ private static Bitmap makePreview(Image img,Image.Plane p){
+  int sourceW=img.getWidth(),sourceH=img.getHeight();
+  int maxSide=Math.max(sourceW,sourceH);
+  float scale=Math.min(1f,320f/maxSide);
+  int outW=Math.max(1,Math.round(sourceW*scale));
+  int outH=Math.max(1,Math.round(sourceH*scale));
+  ByteBuffer buffer=p.getBuffer();
+  int stride=p.getRowStride(),pixel=p.getPixelStride();
+  if(pixel<4)throw new IllegalArgumentException("Pixel stride inesperado");
+  int[] argb=new int[outW*outH];
+  for(int y=0;y<outH;y++){
+   int srcY=Math.min(sourceH-1,(int)((long)y*sourceH/outH));
+   for(int x=0;x<outW;x++){
+    int srcX=Math.min(sourceW-1,(int)((long)x*sourceW/outW));
+    int pos=srcY*stride+srcX*pixel;
+    int r=buffer.get(pos)&255,g=buffer.get(pos+1)&255,b=buffer.get(pos+2)&255;
+    argb[y*outW+x]=0xff000000|(r<<16)|(g<<8)|b;
+   }
+  }
+  return Bitmap.createBitmap(argb,outW,outH,Bitmap.Config.ARGB_8888);
+ }
  private void frame(ImageReader source){
   Image img=null;
   try{
@@ -124,6 +150,11 @@ public class CaptureService extends Service {
    if(now-lastAt<900){discarded++;return;}lastAt=now;
    Image.Plane p=img.getPlanes()[0];ByteBuffer b=p.getBuffer();
    FrameSampler.Result data=FrameSampler.sample(b,img.getWidth(),img.getHeight(),p.getRowStride(),p.getPixelStride());
+   // Un fotograma visual cada 3 segundos; no altera la tasa de captura.
+   if(now-previewAt>=3000){
+    try{Bitmap next=makePreview(img,p);previewFrame=next;previewAt=now;}
+    catch(RuntimeException previewError){lastEvent="vista previa no disponible";}
+   }
    if(seen&&hash!=data.fingerprint)changes++;
    hash=data.fingerprint;seen=true;frames++;if(data.dark)darkFrames++;
    if(status.equals("sin cuadros recientes")){status="capturando";error="";}
@@ -138,6 +169,7 @@ public class CaptureService extends Service {
  private void stopNow(){
   if(stopping)return;stopping=true;active=false;
   main.removeCallbacks(monitor);
+  previewFrame=null;previewAt=0;
   if(display!=null){display.release();display=null;}
   if(reader!=null){reader.close();reader=null;}
   if(projection!=null){MediaProjection p=projection;projection=null;p.stop();}
