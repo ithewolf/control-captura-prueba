@@ -73,7 +73,7 @@ public class MainActivity extends Activity {
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
-  TextView title=new TextView(this);title.setText("CONTROL v22: voz latinoamericana PROVISIONAL. El botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
+  TextView title=new TextView(this);title.setText("CONTROL v26: selector de voces mejorado. Voz latinoamericana PROVISIONAL. El botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
   content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
@@ -82,6 +82,8 @@ public class MainActivity extends Activity {
   hs.addView(historyView);content.addView(hs);
   chooseVoiceButton=new Button(this);chooseVoiceButton.setText("Voces instaladas en tu dispositivo");content.addView(chooseVoiceButton);
   chooseVoiceButton.setOnClickListener(v->showVoiceChooser());
+  Button engineButton=new Button(this);engineButton.setText("Cambiar motor de voz (Samsung / Google)");content.addView(engineButton);
+  engineButton.setOnClickListener(v->openVoiceEngineSettings());
   Button downloadVoices=new Button(this);downloadVoices.setText("Voces para descargar");content.addView(downloadVoices);
   downloadVoices.setOnClickListener(v->showDownloadOptions());
   voiceButton=new Button(this);voiceButton.setText("Probar ALTAVOZ / voz sintetizada (no micrófono)");content.addView(voiceButton);
@@ -115,7 +117,7 @@ public class MainActivity extends Activity {
   if(voice==null || voice.getVoices()==null)return result;
   for(android.speech.tts.Voice item:voice.getVoices()){
    Locale loc=item.getLocale();
-   if(loc==null || item.isNetworkConnectionRequired())continue;
+   if(loc==null)continue;
    result.add(item);
   }
   java.util.Collections.sort(result,(a,b)->{
@@ -127,8 +129,9 @@ public class MainActivity extends Activity {
  }
  private int rankLocale(Locale l){
   String country=l.getCountry();
-  return "AR".equalsIgnoreCase(country)?3:"MX".equalsIgnoreCase(country)?2:
-    "US".equalsIgnoreCase(country)?1:0;
+  if(!"es".equalsIgnoreCase(l.getLanguage()))return 0;
+  return "AR".equalsIgnoreCase(country)?4:"MX".equalsIgnoreCase(country)?3:
+    "US".equalsIgnoreCase(country)?2:1;
  }
  private boolean selectPreferredVoice(){
   java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices();
@@ -144,7 +147,7 @@ public class MainActivity extends Activity {
   if(options.isEmpty()){
    new android.app.AlertDialog.Builder(this)
     .setTitle("Sin voces locales disponibles")
-    .setMessage("No encontramos voces locales enumeradas por el motor actual. Podés abrir las opciones para descargar voces. La escucha y captura siguen disponibles.")
+    .setMessage("El motor activo no informó voces. Probá cambiar el motor entre Samsung y Google en Ajustes y volver a CONTROL. La escucha y captura siguen disponibles.")
     .setPositiveButton("Voces para descargar", (d,w)->showDownloadOptions())
     .setNegativeButton("Seguir sin voz",null).show();
    return;
@@ -156,7 +159,7 @@ public class MainActivity extends Activity {
       (v.isNetworkConnectionRequired()?" (requiere internet)":" (sin conexión)");
   }
   new android.app.AlertDialog.Builder(this)
-   .setTitle("Voces instaladas en tu dispositivo")
+   .setTitle("Voces del motor activo (locales y de red)")
    .setSingleChoiceItems(names,-1,(dialog,which)->{
     android.speech.tts.Voice candidate=options.get(which);
     if(voice.setVoice(candidate)==TextToSpeech.SUCCESS){
@@ -170,10 +173,17 @@ public class MainActivity extends Activity {
    .setNeutralButton("Voces para descargar",(d,w)->showDownloadOptions())
    .setNegativeButton("Cancelar",null).show();
  }
+ private void openVoiceEngineSettings(){
+  try{startActivity(new Intent("com.android.settings.TTS_SETTINGS"));}
+  catch(Exception ex){
+   try{startActivity(new Intent(android.provider.Settings.ACTION_SETTINGS));}
+   catch(Exception ignored){Toast.makeText(this,"Abrí Ajustes > Administración general > Salida de texto a voz",Toast.LENGTH_LONG).show();}
+  }
+ }
  private void showDownloadOptions(){
   new android.app.AlertDialog.Builder(this)
    .setTitle("Voces para descargar")
-   .setMessage("Podés abrir el instalador del motor de voz Android para buscar y descargar voces. La descarga ocurre fuera de CONTROL y depende del catálogo del proveedor. La descarga de modelos propios dentro de CONTROL todavía no está implementada.")
+   .setMessage("Podés abrir el instalador del motor de voz Android para buscar y descargar voces. El catálogo depende del motor Samsung o Google, y puede no incluir español argentino. La descarga ocurre fuera de CONTROL. La descarga de modelos propios dentro de CONTROL todavía no está implementada.")
    .setPositiveButton("Abrir catálogo de Android",(dialog,which)->openVoiceInstaller())
    .setNegativeButton("Cancelar",null).show();
  }
