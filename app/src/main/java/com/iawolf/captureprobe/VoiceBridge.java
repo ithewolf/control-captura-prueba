@@ -16,120 +16,154 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 /**
- * Diagnóstico audiovisual sin servidores: reconocimiento exclusivamente on-device.
- * No graba archivos ni transmite voz. Si Android no tiene motor offline, se informa.
- * El motor TTS es provisional y puede elegir una voz femenina (se ajustará después).
+ * Prueba de larga duración: escucha local por turnos + reinicio periódico del
+ * motor STT. No es un sistema de escucha continua garantizada ni un LLM.
+ *
+ * No envía grabaciones; createOnDeviceSpeechRecognizer exige un motor local.
  */
 public final class VoiceBridge {
+ private static final long RECYCLE_MS=20L*60L*1000L;
+ private static final long PAUSE_MS=4000L;
  private final Context context;
  private final Handler main=new Handler(Looper.getMainLooper());
- private final Runnable retry=new Runnable(){@Override public void run(){listen();}};
  private SpeechRecognizer recognizer;
  private TextToSpeech tts;
- private boolean running=false, speaking=false, ttsReady=false;
+ private boolean running=false,recycling=false,speaking=false,ttsReady=false;
  private int failures=0;
  private long listeningReceivedAt=0;
- private long sessionStartedAt=0;
- // SpeechRecognizer es una prueba puntual, no escucha permanente.
- private static final long TEST_WINDOW_MS=180000L;
- private final Runnable timeLimit=()->{
-  if(running){CaptureService.audioStatus="prueba local terminada (3 minutos)";stop();}
+
+ private final Runnable retry=()->listen();
+ private final Runnable periodicRecycle=()->recycleRecognizer();
+ private final Runnable resumeAfterRecycle=()->{
+  if(!running)return;
+  recycling=false;
+  try{
+   createRecognizer();
+   CaptureService.audioStatus="motor local reiniciado; retomando escucha";
+   schedule(350);
+   main.postDelayed(periodicRecycle,RECYCLE_MS);
+  }catch(Exception e){
+   CaptureService.audioStatus="falló reinicio de voz: "+e.getClass().getSimpleName();
+   // Evitar un bucle rápido si el motor local se quedó sin recursos.
+   recycling=true;
+   main.postDelayed(()->{
+    if(running){recycling=false;recycleRecognizer();}
+   },60000L);
+  }
  };
+
+ private final RecognitionListener listener=new RecognitionListener(){
+  @Override public void onReadyForSpeech(Bundle b){CaptureService.audioStatus="escuchando con Android local";}
+  @Override public void onBeginningOfSpeech(){CaptureService.audioStatus="voz detectada";}
+  @Override public void onRmsChanged(float rms){}
+  @Override public void onBufferReceived(byte[] b){}
+  @Override public void onEndOfSpeech(){CaptureService.audioStatus="procesando frase";}
+  @Override public void onError(int code){
+   if(!running || recycling)return;
+   finishListening(false);
+   CaptureService.audioStatus="error de reconocimiento "+code;
+   if(code==SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS){
+    CaptureService.audioStatus="falta permiso de micrófono";
+    stop();return;
+   }
+   if(code==SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
+      code==SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE){
+    CaptureService.audioStatus="modelo local de español no disponible";
+    stop();return;
+   }
+   if(code==SpeechRecognizer.ERROR_NO_MATCH || code==SpeechRecognizer.ERROR_SPEECH_TIMEOUT){
+    failures=0;schedule(1500);return;
+   }
+   failures++;
+   if(code==SpeechRecognizer.ERROR_TOO_MANY_REQUESTS) {
+    CaptureService.audioStatus="límite del reconocedor; descanso de 60 segundos";
+    schedule(60000);return;
+   }
+   if(code==SpeechRecognizer.ERROR_RECOGNIZER_BUSY){
+    CaptureService.audioStatus="motor ocupado; reintento de 10 segundos";
+    schedule(10000);return;
+   }
+   if(failures>=10){
+    failures=0;
+    CaptureService.audioStatus="demasiados errores; recuperando motor en 60 segundos";
+    main.removeCallbacks(periodicRecycle);
+    main.postDelayed(periodicRecycle,60000);
+    return;
+   }
+   schedule(Math.min(15000L,1500L*failures));
+  }
+  @Override public void onResults(Bundle bundle){
+   if(!running || recycling)return;
+   failures=0;
+   ArrayList<String> matches=bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
+   if(matches==null || matches.isEmpty()){finishListening(false);schedule(650);return;}
+   String heard=matches.get(0);
+   finishListening(true);
+   CaptureService.recognizedPhrases++;
+   CaptureService.lastHeard=heard;
+   CaptureService.audioStatus="frase reconocida localmente";
+   String reply=ControlBrain.replyTo(heard,CaptureService.active,CaptureService.frames,CaptureService.changes);
+   if(reply==null){schedule(650);return;}
+   CaptureService.lastReply=reply;
+   say(reply);
+  }
+  @Override public void onPartialResults(Bundle b){}
+  @Override public void onEvent(int type,Bundle b){}
+ };
+
+ public VoiceBridge(Context ctx){context=ctx.getApplicationContext();}
+
+ public void start(){
+  main.post(()->{
+   if(running)return;
+   if(Build.VERSION.SDK_INT<31 || !SpeechRecognizer.isOnDeviceRecognitionAvailable(context)){
+    CaptureService.audioStatus="sin motor de reconocimiento local";
+    return;
+   }
+   running=true;recycling=false;speaking=false;failures=0;
+   try{
+    createRecognizer();
+    initTts();
+    main.postDelayed(periodicRecycle,RECYCLE_MS);
+    schedule(400);
+   }catch(Exception e){
+    CaptureService.audioStatus="no se pudo iniciar STT: "+e.getClass().getSimpleName();
+    stop();
+   }
+  });
+ }
+ private void createRecognizer(){
+  if(recognizer!=null)throw new IllegalStateException("reconocedor duplicado");
+  recognizer=SpeechRecognizer.createOnDeviceSpeechRecognizer(context);
+  recognizer.setRecognitionListener(listener);
+ }
+ private void initTts(){
+  tts=new TextToSpeech(context,code->main.post(()->{
+   if(!running || tts==null)return;
+   if(code!=TextToSpeech.SUCCESS){
+    CaptureService.audioStatus="TTS provisional no disponible";return;
+   }
+   int result=tts.setLanguage(new Locale("es","AR"));
+   if(result==TextToSpeech.LANG_MISSING_DATA || result==TextToSpeech.LANG_NOT_SUPPORTED)
+    result=tts.setLanguage(new Locale("es","ES"));
+   ttsReady=result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED;
+   if(!ttsReady)return;
+   tts.setSpeechRate(1.0f);
+   tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
+    @Override public void onStart(String id){}
+    @Override public void onDone(String id){main.post(()->{speaking=false;schedule(900);});}
+    @Override public void onError(String id){main.post(()->{speaking=false;schedule(900);});}
+   });
+  }));
+ }
  private void finishListening(boolean recognized){
   long during=Math.max(0,CaptureService.received-listeningReceivedAt);
   CaptureService.framesDuringLastListen=during;
   if(recognized && during>0 && CaptureService.active)
    CaptureService.simultaneousAvObserved=true;
  }
- private final RecognitionListener listener=new RecognitionListener(){
-  @Override public void onReadyForSpeech(Bundle b){CaptureService.audioStatus="escuchando (local)";}
-  @Override public void onBeginningOfSpeech(){CaptureService.audioStatus="voz detectada";}
-  @Override public void onRmsChanged(float rms){}
-  @Override public void onBufferReceived(byte[] b){}
-  @Override public void onEndOfSpeech(){CaptureService.audioStatus="procesando voz local";}
-  @Override public void onError(int error){
-   if(!running)return;
-   finishListening(false);
-   CaptureService.audioStatus="reconocimiento local: código "+error;
-   if(error==SpeechRecognizer.ERROR_SPEECH_TIMEOUT || error==SpeechRecognizer.ERROR_NO_MATCH){
-    schedule(1500);return;
-   }
-   if(error==SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED ||
-      error==SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE){
-    CaptureService.audioStatus="el motor local no tiene español compatible";
-    stop();return;
-   }
-   if(error==SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS ||
-      error==SpeechRecognizer.ERROR_CLIENT){
-    // Un error cliente ocasional puede recuperarse, sin hacer un bucle agresivo.
-    if(error==SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS){stop();return;}
-   }
-   failures++;
-   if(failures>10){CaptureService.audioStatus="reconocimiento pausado tras errores";return;}
-   schedule(Math.min(8000L,1200L*failures));
-  }
-  @Override public void onResults(Bundle results){
-   if(!running)return;
-   finishListening(true);
-   failures=0;
-   ArrayList<String> matches=results.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION);
-   if(matches==null || matches.isEmpty()){schedule(500);return;}
-   String heard=matches.get(0);
-   CaptureService.recognizedPhrases++;
-   CaptureService.lastHeard=heard;
-   CaptureService.audioStatus="texto recibido (local)";
-   String reply=ControlBrain.replyTo(heard,CaptureService.active,CaptureService.frames,CaptureService.changes);
-   if(reply==null){schedule(650);return;}
-   CaptureService.lastReply=reply;
-   say(reply);
-  }
-  @Override public void onPartialResults(Bundle results){}
-  @Override public void onEvent(int eventType,Bundle params){}
- };
- public VoiceBridge(Context context){this.context=context.getApplicationContext();}
- public void start(){
-  main.post(()->{
-   if(running)return;
-   if(Build.VERSION.SDK_INT<31 || !SpeechRecognizer.isOnDeviceRecognitionAvailable(context)){
-    CaptureService.audioStatus="sin reconocimiento local instalado en Android";
-    return;
-   }
-   running=true;failures=0;
-   sessionStartedAt=SystemClock.elapsedRealtime();
-   main.postDelayed(timeLimit,TEST_WINDOW_MS);
-   try{
-    recognizer=SpeechRecognizer.createOnDeviceSpeechRecognizer(context);
-    recognizer.setRecognitionListener(listener);
-    tts=new TextToSpeech(context,code->main.post(()->{
-     if(!running || tts==null)return;
-     if(code==TextToSpeech.SUCCESS){
-      int l=tts.setLanguage(new Locale("es","AR"));
-      if(l==TextToSpeech.LANG_MISSING_DATA || l==TextToSpeech.LANG_NOT_SUPPORTED)
-       l=tts.setLanguage(new Locale("es","ES"));
-      ttsReady=l!=TextToSpeech.LANG_MISSING_DATA && l!=TextToSpeech.LANG_NOT_SUPPORTED;
-      if(ttsReady){
-       tts.setSpeechRate(1.0f);
-       tts.setOnUtteranceProgressListener(new UtteranceProgressListener(){
-        @Override public void onStart(String id){}
-        @Override public void onDone(String id){main.post(()->{speaking=false;schedule(650);});}
-        @Override public void onError(String id){main.post(()->{speaking=false;schedule(650);});}
-       });
-      }
-     }
-    }));
-    schedule(300);
-   }catch(Exception e){
-    CaptureService.audioStatus="error inicialización voz: "+e.getClass().getSimpleName();
-    stop();
-   }
-  });
- }
  private void listen(){
-  if(!running || recognizer==null || speaking)return;
-  if(SystemClock.elapsedRealtime()-sessionStartedAt>=TEST_WINDOW_MS){
-   CaptureService.audioStatus="prueba local de escucha terminada (3 minutos)";
-   stop();return;
-  }
+  if(!running || recycling || recognizer==null || speaking)return;
   try{
    Intent i=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
    i.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
@@ -139,40 +173,57 @@ public final class VoiceBridge {
    listeningReceivedAt=CaptureService.received;
    recognizer.startListening(i);
    CaptureService.listenAttempts++;
-   CaptureService.audioStatus="esperando voz (local)";
+   CaptureService.audioStatus="esperando frase local";
   }catch(Exception e){
-   CaptureService.audioStatus="error al escuchar: "+e.getClass().getSimpleName();
+   CaptureService.audioStatus="excepción STT: "+e.getClass().getSimpleName();
    failures++;
-   if(failures<=10)schedule(2000);
+   if(failures<10)schedule(10000);
+   else {failures=0;main.removeCallbacks(periodicRecycle);main.postDelayed(periodicRecycle,60000);}
   }
  }
- private void say(String reply){
+ private void say(String words){
   main.removeCallbacks(retry);
   if(!running)return;
-  if(!ttsReady || tts==null){
-   CaptureService.audioStatus="texto reconocido, voz TTS no disponible";
-   schedule(1000);
-   return;
+  if(tts==null || !ttsReady){
+   CaptureService.audioStatus="texto reconocido, TTS no disponible";
+   schedule(750);return;
   }
-  speaking=true;CaptureService.audioStatus="respondiendo por voz";
-  int code=tts.speak(reply,TextToSpeech.QUEUE_FLUSH,null,"control_av_reply");
-  if(code==TextToSpeech.ERROR){speaking=false;schedule(1000);}
+  speaking=true;
+  CaptureService.audioStatus="respondiendo por voz provisional";
+  if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")==TextToSpeech.ERROR){
+   speaking=false;schedule(900);
+  }
  }
  private void schedule(long delay){
-  if(!running || speaking)return;
+  if(!running || recycling || speaking)return;
   main.removeCallbacks(retry);
   main.postDelayed(retry,delay);
  }
+ private void recycleRecognizer(){
+  if(!running)return;
+  recycling=true;
+  CaptureService.audioStatus="descanso de voz (4 segundos); captura continúa";
+  CaptureService.voiceRestarts++;
+  main.removeCallbacks(retry);
+  main.removeCallbacks(periodicRecycle);
+  if(recognizer!=null){
+   try{recognizer.cancel();recognizer.destroy();}catch(Exception ignored){}
+   recognizer=null;
+  }
+  main.postDelayed(resumeAfterRecycle,PAUSE_MS);
+ }
  public void stop(){
   main.post(()->{
-   running=false;speaking=false;
+   running=false;recycling=false;speaking=false;
    main.removeCallbacks(retry);
-   main.removeCallbacks(timeLimit);
+   main.removeCallbacks(periodicRecycle);
+   main.removeCallbacks(resumeAfterRecycle);
    if(recognizer!=null){
     try{recognizer.cancel();recognizer.destroy();}catch(Exception ignored){}
     recognizer=null;
    }
    if(tts!=null){tts.stop();tts.shutdown();tts=null;}
+   ttsReady=false;
   });
  }
 }
