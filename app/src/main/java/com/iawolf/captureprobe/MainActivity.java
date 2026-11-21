@@ -25,6 +25,8 @@ public class MainActivity extends Activity {
    " · Frases reconocidas: "+CaptureService.recognizedPhrases+
    "\nImágenes recibidas durante última escucha: "+CaptureService.framesDuringLastListen+
    "\nAudio + imagen simultáneos: "+(CaptureService.simultaneousAvObserved?"observados":"sin confirmar")+
+   "\nReinicios del motor de voz: "+CaptureService.voiceRestarts+
+   "\nSesión activa (min): "+(CaptureService.active?((SystemClock.elapsedRealtime()-CaptureService.sessionStartedAt)/60000):0)+
    "\nCallbacks: "+CaptureService.callbacks+
    "\nImágenes recibidas: "+CaptureService.received+"\nImágenes analizadas: "+CaptureService.frames+
    "\nNulas: "+CaptureService.nullImages+" · Antiguas: "+CaptureService.staleImages+
@@ -66,7 +68,7 @@ public class MainActivity extends Activity {
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
-  TextView title=new TextView(this);title.setText("Prueba de audio + video: no interpreta aún el juego. La escucha de prueba dura 3 minutos, tras autorizarla.");content.addView(title);
+  TextView title=new TextView(this);title.setText("Prueba de audio + video: no interpreta aún el juego. La escucha se reinicia cada 20 minutos con una pausa de 4 segundos; la sesión termina cuando la detenés o Android interrumpe la captura.");content.addView(title);
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
   content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
@@ -87,9 +89,13 @@ public class MainActivity extends Activity {
    voiceButton.setEnabled(voiceReady);
    if(!voiceReady)Toast.makeText(this,"Falta una voz española instalada en Android",Toast.LENGTH_LONG).show();
   }));
-  Button start=new Button(this);start.setText("Autorizar captura + micrófono");content.addView(start);
+  Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
-  start.setOnClickListener(v->requestCapture());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
+  start.setOnClickListener(v->new android.app.AlertDialog.Builder(this)
+   .setTitle("Uso de micrófono")
+   .setMessage("CONTROL intentará escuchar durante la sesión. Android puede dejar sin micrófono al chat de voz de Wild Rift, Discord u otra app. La captura de pantalla requiere tu autorización. Podés detener CONTROL cuando quieras desde su notificación.")
+   .setPositiveButton("Iniciar", (dialog,which)->requestCapture())
+   .setNegativeButton("Cancelar",null).show());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
   l.addView(scroll);
   setContentView(l);
  }
