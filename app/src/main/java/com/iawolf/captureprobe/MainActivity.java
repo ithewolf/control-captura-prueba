@@ -96,7 +96,8 @@ public class MainActivity extends Activity {
     voice.setSpeechRate(1.06f);voice.setPitch(0.88f);
    }
    voiceButton.setEnabled(voiceReady);
-   if(!voiceReady)Toast.makeText(this,"Falta una voz argentina (es-AR) instalada en Android",Toast.LENGTH_LONG).show();
+   // No mostrar aviso cada vez que se abre la app. STT y captura son independientes.
+   if(!voiceReady)voiceButton.setText("Voz argentina no instalada (prueba de altavoz desactivada)");
   }));
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
