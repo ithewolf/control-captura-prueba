@@ -6,9 +6,11 @@ import android.content.pm.PackageManager;
 import android.media.projection.MediaProjectionManager;
 import android.media.projection.MediaProjectionConfig;
 import android.os.*;
+import android.graphics.Bitmap;
 import android.widget.*;
 public class MainActivity extends Activity {
- private TextView label; private final Handler h=new Handler(Looper.getMainLooper());
+ private TextView label; private ImageView preview; private final Handler h=new Handler(Looper.getMainLooper());
+ private long lastShownAt=-1;
  private long before=-1;
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nCallbacks: "+CaptureService.callbacks+
@@ -31,11 +33,20 @@ public class MainActivity extends Activity {
     " · cambios "+snap.getLong("changes",0)+
     " · estado "+snap.getString("status","sin registro")+
     " · error "+snap.getString("error",""));
+  Bitmap bitmap=CaptureService.previewFrame;
+  long timestamp=CaptureService.previewAt;
+  if(timestamp!=lastShownAt){
+   preview.setImageBitmap(bitmap);
+   lastShownAt=timestamp;
+  }
   h.postDelayed(this,1000);
  }};
  @Override public void onCreate(Bundle b){super.onCreate(b);LinearLayout l=new LinearLayout(this);
   l.setOrientation(1);l.setPadding(25,25,25,25);
   label=new TextView(this);l.addView(label);
+  TextView title=new TextView(this);title.setText("Vista previa local (solo memoria)");l.addView(title);
+  preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
+  l.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   Button start=new Button(this);start.setText("Autorizar captura");l.addView(start);
   Button stop=new Button(this);stop.setText("Detener");l.addView(stop);
   start.setOnClickListener(v->requestCapture());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
