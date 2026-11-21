@@ -1,7 +1,7 @@
 name: Compilar CONTROL Captura (diagnostico)
 on:
   push:
-    branches: [main]
+    branches: [main, control-pantalla-completa-v10]
   workflow_dispatch:
 permissions:
   contents: read
