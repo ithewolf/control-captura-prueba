@@ -72,7 +72,7 @@ public final class TacticalBrain {
     if(s.isEmpty())return Intent.UNKNOWN;
     if(any(s,"gank","gankear","embosc","me vienen","me persig","me atacan"))return Intent.GANK;
     if(any(s,"dragon","baron","heraldo","objetivo","jungla","smite"))return Intent.OBJECTIVE;
-    if(any(s,"pelea","pelear","teamfight","luchar","entrar","iniciar","retroceder","retir"))return Intent.FIGHT;
+    if(any(s,"pelea","pelear","peleo","peleamos","teamfight","luchar","entrar","iniciar","retroceder","retir"))return Intent.FIGHT;
     if(any(s,"rotar","rotacion","torre destruida","tiramos torre","destruir torre","pushear","push"))return Intent.ROTATE;
     if(any(s,"cuantos enemigos","cuantos rivales","a quien ves","que ves","ves enemigos"))return Intent.VISION;
     if(any(s,"estado","captura","pantalla","funciona"))return Intent.STATUS;
