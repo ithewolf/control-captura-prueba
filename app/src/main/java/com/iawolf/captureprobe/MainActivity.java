@@ -16,6 +16,11 @@ public class MainActivity extends Activity {
    "\nTamaño: "+CaptureService.width+" x "+CaptureService.height+
    "\nCuadros desde salida: "+(before<0?"sin medición":Math.max(0,CaptureService.frames-before))+
    "\nError: "+CaptureService.error);
+  android.content.SharedPreferences snap=getSharedPreferences("capture_diagnostics",MODE_PRIVATE);
+  label.append("\nÚltimo registro guardado: cuadros "+snap.getLong("frames",0)+
+    " · cambios "+snap.getLong("changes",0)+
+    " · estado "+snap.getString("status","sin registro")+
+    " · error "+snap.getString("error",""));
   h.postDelayed(this,1000);
  }};
  @Override public void onCreate(Bundle b){super.onCreate(b);LinearLayout l=new LinearLayout(this);
