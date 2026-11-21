@@ -2,6 +2,8 @@ package com.iawolf.captureprobe;
 
 import android.content.Context;
 import android.media.AudioAttributes;
+import android.media.audiofx.NoiseSuppressor;
+import android.media.audiofx.AcousticEchoCanceler;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.SystemClock;
@@ -27,6 +29,8 @@ public final class VoskVoiceBridge implements RecognitionListener {
  private final Context context;
  private final Handler main=new Handler(Looper.getMainLooper());
  private SpeechService speech;
+ private NoiseSuppressor noiseSuppressor;
+ private AcousticEchoCanceler echoCanceler;
  private Model model;
  private TextToSpeech tts;
  private boolean running=false, speaking=false, prepared=false, ttsReady=false;
@@ -69,6 +73,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
   if(!running||!prepared||speaking||model==null||speech!=null)return;
   try{
    speech=new SpeechService(new Recognizer(model,16000.0f),16000.0f);
+   applyAudioFiltersIfSupported();
    listenFrameBaseline=CaptureService.received;
    CaptureService.listenAttempts++;
    speech.startListening(this);
@@ -84,8 +89,36 @@ public final class VoskVoiceBridge implements RecognitionListener {
   }
  }
 
+ /**
+  * Vosk's latest SpeechService exposes the AudioRecord session ID.
+  * Older binaries may not. Detect capability at runtime; never block STT.
+  * AEC/NS reduce leakage but cannot isolate the user's identity.
+  */
+ private void applyAudioFiltersIfSupported(){
+  if(speech==null)return;
+  try {
+   Object raw=speech.getClass().getMethod("getAudioSessionId").invoke(speech);
+   int session=((Number)raw).intValue();
+   if(session<=0)return;
+   if(NoiseSuppressor.isAvailable()){
+    noiseSuppressor=NoiseSuppressor.create(session);
+    if(noiseSuppressor!=null)noiseSuppressor.setEnabled(true);
+   }
+   if(AcousticEchoCanceler.isAvailable()){
+    echoCanceler=AcousticEchoCanceler.create(session);
+    if(echoCanceler!=null)echoCanceler.setEnabled(true);
+   }
+  } catch(Exception unavailable){
+   CaptureService.audioStatus="Vosk activo; filtros DSP no disponibles en esta versión";
+  }
+ }
+ private void releaseAudioFilters(){
+  if(noiseSuppressor!=null){noiseSuppressor.release();noiseSuppressor=null;}
+  if(echoCanceler!=null){echoCanceler.release();echoCanceler=null;}
+ }
  private void haltListening(){
   SpeechService old=speech;speech=null;
+  releaseAudioFilters();
   if(old!=null){
    try{old.stop();}catch(Exception ignored){}
    try{old.shutdown();}catch(Exception ignored){}
