@@ -9,7 +9,7 @@ import android.os.*;
 import android.graphics.Bitmap;
 import android.widget.*;
 public class MainActivity extends Activity {
- private TextView label; private ImageView preview; private final Handler h=new Handler(Looper.getMainLooper());
+ private TextView label; private ImageView preview; private LinearLayout historyView; private final Handler h=new Handler(Looper.getMainLooper());
  private long lastShownAt=-1;
  private long before=-1;
  private final Runnable refresh=new Runnable(){public void run(){
@@ -33,6 +33,13 @@ public class MainActivity extends Activity {
     " · cambios "+snap.getLong("changes",0)+
     " · estado "+snap.getString("status","sin registro")+
     " · error "+snap.getString("error",""));
+  Bitmap[] recent=CaptureService.getRecentFrames();
+  historyView.removeAllViews();
+  for(int i=recent.length-1;i>=0;i--){
+   ImageView thumb=new ImageView(MainActivity.this);
+   thumb.setImageBitmap(recent[i]);thumb.setScaleType(ImageView.ScaleType.FIT_CENTER);
+   historyView.addView(thumb,new LinearLayout.LayoutParams((int)(185*getResources().getDisplayMetrics().density),(int)(115*getResources().getDisplayMetrics().density)));
+  }
   Bitmap bitmap=CaptureService.previewFrame;
   long timestamp=CaptureService.previewAt;
   if(timestamp!=lastShownAt){
@@ -43,13 +50,21 @@ public class MainActivity extends Activity {
  }};
  @Override public void onCreate(Bundle b){super.onCreate(b);LinearLayout l=new LinearLayout(this);
   l.setOrientation(1);l.setPadding(25,25,25,25);
-  label=new TextView(this);l.addView(label);
-  TextView title=new TextView(this);title.setText("Vista previa local (solo memoria)");l.addView(title);
+  ScrollView scroll=new ScrollView(this);
+  LinearLayout content=new LinearLayout(this);content.setOrientation(1);
+  scroll.addView(content);
+  label=new TextView(this);content.addView(label);
+  TextView title=new TextView(this);title.setText("Vista previa local (solo memoria)");content.addView(title);
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
-  l.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
-  Button start=new Button(this);start.setText("Autorizar captura");l.addView(start);
-  Button stop=new Button(this);stop.setText("Detener");l.addView(stop);
+  content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
+  TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
+  HorizontalScrollView hs=new HorizontalScrollView(this);
+  historyView=new LinearLayout(this);historyView.setOrientation(LinearLayout.HORIZONTAL);
+  hs.addView(historyView);content.addView(hs);
+  Button start=new Button(this);start.setText("Autorizar captura");content.addView(start);
+  Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
   start.setOnClickListener(v->requestCapture());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
+  l.addView(scroll);
   setContentView(l);
  }
  private void requestCapture(){
