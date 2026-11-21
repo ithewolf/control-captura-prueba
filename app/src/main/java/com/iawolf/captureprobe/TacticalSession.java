@@ -9,7 +9,7 @@ public final class TacticalSession {
   public static final long CONTEXT_TTL_MS = 90_000L;
 
   private boolean enemyKnown,enemyNear,allyKnown,allyNear,escapeKnown,escapeAvailable;
-  private long lastFactAt=-1L;
+  private long enemyFactAt=-1L,allyFactAt=-1L,escapeFactAt=-1L;
   private String role="";
   private String lastTopic="";
   private long lastTopicAt=-1L;
@@ -17,36 +17,36 @@ public final class TacticalSession {
   public synchronized void reset() {
     enemyKnown=allyKnown=escapeKnown=false;
     enemyNear=allyNear=escapeAvailable=false;
-    lastFactAt=-1L;lastTopic="";lastTopicAt=-1L;role="";
+    enemyFactAt=allyFactAt=escapeFactAt=-1L;lastTopic="";lastTopicAt=-1L;role="";
   }
 
   public synchronized TacticalBrain.Decision respond(String utterance, boolean capturing, long frames, long nowMs) {
     if(nowMs<0)throw new IllegalArgumentException("nowMs must be nonnegative");
     String s=TacticalBrain.normalize(utterance);
-    if(lastFactAt>=0 && (nowMs<lastFactAt || nowMs-lastFactAt>CONTEXT_TTL_MS)) {
-      enemyKnown=allyKnown=escapeKnown=false;
-    }
+    // Each fact expires independently: refreshing an ally must not revive an old enemy.
+    if(expired(enemyFactAt,nowMs))enemyKnown=false;
+    if(expired(allyFactAt,nowMs))allyKnown=false;
+    if(expired(escapeFactAt,nowMs))escapeKnown=false;
     if(lastTopicAt>=0 && (nowMs<lastTopicAt || nowMs-lastTopicAt>CONTEXT_TTL_MS)) {
       lastTopic="";
     }
     // Explicit declarations. Do not interpret hypothetical questions as facts.
     boolean hypothetical=s.contains("si ") || s.startsWith("y si ") || s.contains("supon");
-    boolean updated=false;
     if(!hypothetical) {
       if(contains(s,"no hay enemigos cerca","ningun enemigo cerca","no tengo enemigos cerca","enemigos lejos")) {
-        enemyKnown=true;enemyNear=false;updated=true;
+        enemyKnown=true;enemyNear=false;enemyFactAt=nowMs;
       } else if(contains(s,"hay un enemigo cerca","hay enemigos cerca","enemigo cerca","enemigos cerca","me estan gankeando","me persiguen")) {
-        enemyKnown=true;enemyNear=true;updated=true;
+        enemyKnown=true;enemyNear=true;enemyFactAt=nowMs;
       }
       if(contains(s,"estoy solo","sin aliados","no hay aliados cerca","mis aliados estan lejos")) {
-        allyKnown=true;allyNear=false;updated=true;
+        allyKnown=true;allyNear=false;allyFactAt=nowMs;
       } else if(contains(s,"aliados cerca","mi equipo esta conmigo","tengo apoyo cerca","mis aliados estan conmigo")) {
-        allyKnown=true;allyNear=true;updated=true;
+        allyKnown=true;allyNear=true;allyFactAt=nowMs;
       }
       if(contains(s,"no tengo escape","sin escape","no tengo flash","sin destello")) {
-        escapeKnown=true;escapeAvailable=false;updated=true;
+        escapeKnown=true;escapeAvailable=false;escapeFactAt=nowMs;
       } else if(contains(s,"tengo flash","tengo destello","tengo escape")) {
-        escapeKnown=true;escapeAvailable=true;updated=true;
+        escapeKnown=true;escapeAvailable=true;escapeFactAt=nowMs;
       }
       if(contains(s,"soy jungla","estoy jungla","juego jungla"))role="jungla";
       else if(contains(s,"soy soporte","juego soporte"))role="soporte";
@@ -54,7 +54,6 @@ public final class TacticalSession {
       else if(contains(s,"soy mid","juego mid","voy medio"))role="mid";
       else if(contains(s,"soy top","juego top","voy baron"))role="top";
     }
-    if(updated)lastFactAt=nowMs;
 
     TacticalBrain.Context.Builder b=new TacticalBrain.Context.Builder().capture(capturing,frames).role(role);
     if(enemyKnown)b.enemyNear(enemyNear);
@@ -69,7 +68,7 @@ public final class TacticalSession {
       question=lastTopic;
     }
     TacticalBrain.Decision answer=TacticalBrain.decide(question,ctx);
-    if(answer.intent!=TacticalBrain.Intent.UNKNOWN && answer.intent!=TacticalBrain.Intent.STATUS && answer.intent!=TacticalBrain.Intent.GREET) {
+    if(answer.intent!=TacticalBrain.Intent.UNKNOWN && answer.intent!=TacticalBrain.Intent.STATUS && answer.intent!=TacticalBrain.Intent.GREET && answer.intent!=TacticalBrain.Intent.ROLE) {
       lastTopic=question;
       lastTopicAt=nowMs;
     }
@@ -77,6 +76,10 @@ public final class TacticalSession {
   }
 
   public synchronized String currentRole(){return role;}
+
+  private static boolean expired(long at,long now){
+    return at>=0 && (now<at || now-at>CONTEXT_TTL_MS);
+  }
 
   private static boolean contains(String s,String... phrases) {
     for(String p:phrases)if(s.contains(p))return true;
