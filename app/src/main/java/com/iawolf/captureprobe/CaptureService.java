@@ -48,7 +48,7 @@ public class CaptureService extends Service {
  // Tiempo medido desde que la voz termina hasta que Android avisa que vuelve a escuchar.
  public static volatile long lastAudioRecoveryMs=-1;
  public static volatile boolean simultaneousAvObserved=false;
- private VoiceBridge voiceBridge;
+ private VoskVoiceBridge voiceBridge;
  private final Handler main=new Handler(Looper.getMainLooper());
  private HandlerThread worker;private Handler images;
  private MediaProjection projection;private VirtualDisplay display;private ImageReader reader;
@@ -136,7 +136,7 @@ public class CaptureService extends Service {
    display=projection.createVirtualDisplay("CONTROL diagnosis",width,height,metrics.densityDpi,
     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,reader.getSurface(),null,images);
    status="capturando";latestFrameAt=SystemClock.elapsedRealtime();
-   if(audioAllowed){voiceBridge=new VoiceBridge(this);voiceBridge.start();}
+   if(audioAllowed){voiceBridge=new VoskVoiceBridge(this);voiceBridge.start();}
    else audioStatus="permiso de micrófono pendiente";
    main.postDelayed(monitor,15000);
    main.postDelayed(()->{if(active&&frames==0){error="No llegaron cuadros en 12 segundos";status="sin cuadros";}},12000);
