@@ -104,7 +104,7 @@ public class CaptureService extends Service {
   previewFrame=null;previewAt=0;clearRecentFrames();
   audioStatus="iniciando";lastHeard="";lastReply="";ttsStatus="iniciando";ttsVoice="sin seleccionar";speechErrors=ttsStarted=ttsCompleted=ttsFailed=0;
   listenAttempts=recognizedPhrases=framesDuringLastListen=voiceRestarts=0;
-  sessionStartedAt=SystemClock.elapsedRealtime();lastAudioRecoveryMs=-1;
+  sessionStartedAt=SystemClock.elapsedRealtime();AvContext.reset(sessionStartedAt);lastAudioRecoveryMs=-1;
   simultaneousAvObserved=false;
   try{
    boolean audioAllowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
@@ -202,6 +202,7 @@ public class CaptureService extends Service {
    }
    if(seen&&hash!=data.fingerprint)changes++;
    hash=data.fingerprint;seen=true;frames++;if(data.dark)darkFrames++;
+   AvContext.recordFrame(sessionStartedAt,now,frames,changes,data.dark);
    if(status.equals("sin cuadros recientes")){status="capturando";error="";}
    if(frames==1){status="capturando";error="";}
    if(frames==1||frames%5==0)saveSnapshot();
