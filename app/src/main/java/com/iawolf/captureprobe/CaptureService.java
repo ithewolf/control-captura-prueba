@@ -19,6 +19,12 @@ public class CaptureService extends Service {
  private MediaProjection projection;private VirtualDisplay display;private ImageReader reader;
  private long hash=0,lastAt=0;private boolean seen=false,stopping=false;
  private final String CHANNEL="control-probe";
+ private void saveSnapshot(){getSharedPreferences("capture_diagnostics",MODE_PRIVATE).edit()
+  .putLong("frames",frames).putLong("changes",changes).putLong("dark",darkFrames)
+  .putInt("width",width).putInt("height",height)
+  .putString("status",status).putString("error",error)
+  .putLong("updated",System.currentTimeMillis()).apply();}
+
  @Override public IBinder onBind(Intent i){return null;}
  @Override public void onCreate(){super.onCreate();
   ((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).createNotificationChannel(
@@ -59,7 +65,7 @@ public class CaptureService extends Service {
    status="capturando";
    main.postDelayed(()->{if(active)stopNow();},600000);
    main.postDelayed(()->{if(active&&frames==0){error="No llegaron cuadros en 12 segundos";status="sin cuadros";}},12000);
-  }catch(Exception e){error=e.toString();status="error";stopNow();}
+  }catch(Exception e){error=e.toString();status="error";saveSnapshot();stopNow();}
   return START_NOT_STICKY;
  }
  private void createReader(int w,int h){
@@ -87,6 +93,7 @@ public class CaptureService extends Service {
    if(seen&&hash!=data.fingerprint)changes++;
    hash=data.fingerprint;seen=true;frames++;if(data.dark)darkFrames++;
    if(frames==1){status="capturando";error="";}
+   if(frames==1||frames%5==0)saveSnapshot();
    if(frames%5==0)main.post(()->{
     if(active)((NotificationManager)getSystemService(NOTIFICATION_SERVICE)).notify(1,notice());
    });
@@ -100,6 +107,7 @@ public class CaptureService extends Service {
   if(projection!=null){MediaProjection p=projection;projection=null;p.stop();}
   if(worker!=null){worker.quitSafely();worker=null;}
   if(!status.equals("error"))status="detenido";
+  saveSnapshot();
   stopForeground(STOP_FOREGROUND_REMOVE);stopSelf();
  }
  @Override public void onDestroy(){stopNow();super.onDestroy();}
