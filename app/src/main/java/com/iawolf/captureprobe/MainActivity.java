@@ -18,6 +18,7 @@ public class MainActivity extends Activity {
  private boolean voiceReady=false;
  private Button voiceButton;
  private Button chooseVoiceButton;
+ private String selectedMode="coach";
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
    "\nVoz TTS: "+CaptureService.ttsStatus+" · Motor: "+CaptureService.ttsVoice+
@@ -100,6 +101,8 @@ public class MainActivity extends Activity {
     showVoiceChooser();
    }
   }));
+  Button chooseMode=new Button(this);chooseMode.setText("Elegir modo de CONTROL");content.addView(chooseMode);
+  chooseMode.setOnClickListener(v->showModeChooser());
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
   start.setOnClickListener(v->new android.app.AlertDialog.Builder(this)
@@ -109,6 +112,27 @@ public class MainActivity extends Activity {
    .setNegativeButton("Cancelar",null).show());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
   l.addView(scroll);
   setContentView(l);
+  showModeChooser();
+ }
+ private void showModeChooser(){
+  final String[] modes={"😈 Modo Tóxico — humor y cargadas argentinas","🧠 Modo Coach — consejos y entrenamiento"};
+  new android.app.AlertDialog.Builder(this)
+   .setTitle("¿Cómo querés jugar hoy con CONTROL?")
+   .setSingleChoiceItems(modes,"toxico".equals(selectedMode)?0:1,(dialog,index)->{
+    selectedMode=index==0?"toxico":"coach";
+    getSharedPreferences("control_mode",MODE_PRIVATE).edit().putString("mode",selectedMode).apply();
+    dialog.dismiss();
+    if("coach".equals(selectedMode)){
+     new android.app.AlertDialog.Builder(this)
+      .setTitle("Audio recomendado para entrenar")
+      .setMessage("Para que CONTROL reconozca mejor tu voz, te recomendamos reducir la música y los diálogos de campeones desde los ajustes de Wild Rift. Conservá los efectos y señales importantes. CONTROL no cambia estas opciones automáticamente.")
+      .setPositiveButton("Entendido",null)
+      .setNegativeButton("Mantener audio como está",null).show();
+    }else{
+     Toast.makeText(this,"Modo Tóxico: música y diálogos sin cambios",Toast.LENGTH_LONG).show();
+    }
+   })
+   .setNegativeButton("Ahora no",null).show();
  }
  private java.util.ArrayList<android.speech.tts.Voice> compatibleVoices(){
   java.util.ArrayList<android.speech.tts.Voice> result=new java.util.ArrayList<>();
