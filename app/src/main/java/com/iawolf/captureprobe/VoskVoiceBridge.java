@@ -94,7 +94,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
 
  @Override public void onPartialResult(String json){}
  @Override public void onResult(String json){acceptResult(json);}
- @Override public void onFinalResult(String json){acceptResult(json);}
+ @Override public void onFinalResult(String json){/* end-of-stream only; avoid duplicate reply */}
  @Override public void onError(Exception e){
   main.post(()->{
    if(!running||speaking)return;
