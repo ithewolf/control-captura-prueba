@@ -18,7 +18,10 @@ public class MainActivity extends Activity {
  private boolean voiceReady=false;
  private Button voiceButton;
  private final Runnable refresh=new Runnable(){public void run(){
-  label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+\n   "\nÚltimo texto escuchado: "+CaptureService.lastHeard+\n   "\nRespuesta local: "+CaptureService.lastReply+\n   "\nCallbacks: "+CaptureService.callbacks+
+  label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
+   "\nÚltimo texto escuchado: "+CaptureService.lastHeard+
+   "\nRespuesta local: "+CaptureService.lastReply+
+   "\nCallbacks: "+CaptureService.callbacks+
    "\nImágenes recibidas: "+CaptureService.received+"\nImágenes analizadas: "+CaptureService.frames+
    "\nNulas: "+CaptureService.nullImages+" · Antiguas: "+CaptureService.staleImages+
    "\nResize: "+CaptureService.resizes+" · Descartadas: "+CaptureService.discarded+
