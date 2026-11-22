@@ -1,7 +1,7 @@
-name: CONTROL Lab6 - APK IA local (experimental)
+name: CONTROL Lab7 - model diagnostics APK (experimental)
 on:
   push:
-    branches: [lab6-control-cerebro-local]
+    branches: [lab7-model-diagnostics-20261122]
     paths:
       - 'app/**'
       - 'build.gradle'
@@ -13,7 +13,7 @@ on:
 permissions:
   contents: read
 concurrency:
-  group: control-lab6-build
+  group: control-lab7-build
   cancel-in-progress: true
 jobs:
   test-and-apk:
@@ -33,6 +33,10 @@ jobs:
           java -cp /tmp/control-lab6-test ConversationCoreTest
           javac -encoding UTF-8 -d /tmp/control-lab6-test app/src/main/java/com/iawolf/captureprobe/GameFrameSelectionPolicy.java tests/GameFrameSelectionPolicyTest.java
           java -cp /tmp/control-lab6-test GameFrameSelectionPolicyTest
+      - name: Validar huella digital SHA256 del modelo (JVM)
+        run: |
+          javac -encoding UTF-8 -d /tmp/control-lab6-test app/src/main/java/com/iawolf/captureprobe/ModelFingerprint.java tests/ModelFingerprintTest.java
+          java -cp /tmp/control-lab6-test ModelFingerprintTest
       - name: Revisar ZIPs de fotogramas sin subir imágenes ni simular reconocimiento
         run: |
           python3 -m compileall -q tools
@@ -50,7 +54,7 @@ jobs:
       - name: Evidencia APK
         uses: actions/upload-artifact@v4
         with:
-          name: CONTROL-Lab6-LiteRT-APK-EXPERIMENTAL
+          name: CONTROL-Lab7-ModelDiagnostics-APK-EXPERIMENTAL
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
