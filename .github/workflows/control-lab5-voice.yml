@@ -5,6 +5,7 @@ on:
     branches: [lab5-control-voice-identity]
     paths:
       - 'tools/voice_identity_reference.py'
+      - 'tools/lab5_openvoice_v2.py'
       - 'lab5_voice_identity/**'
       - '.github/workflows/control-lab5-voice.yml'
 permissions:
@@ -17,6 +18,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Install audio conversion tool
         run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
+      - name: Verify local voice candidate script is syntactically valid
+        run: python -m py_compile tools/lab5_openvoice_v2.py tools/voice_identity_reference.py
       - name: Generate synthetic test voice (not user's reference)
         run: |
           mkdir -p build/lab5-fixture
