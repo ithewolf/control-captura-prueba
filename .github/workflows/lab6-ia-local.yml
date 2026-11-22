@@ -37,6 +37,10 @@ jobs:
         run: |
           javac -encoding UTF-8 -d /tmp/control-lab6-test app/src/main/java/com/iawolf/captureprobe/ModelFingerprint.java tests/ModelFingerprintTest.java
           java -cp /tmp/control-lab6-test ModelFingerprintTest
+      - name: Test de minimapa - observaciones temporales sin inferir enemigos ocultos
+        run: |
+          javac -encoding UTF-8 -d /tmp/control-lab6-test app/src/main/java/com/iawolf/captureprobe/MapObservationTracker.java tests/MapObservationTrackerTest.java
+          java -cp /tmp/control-lab6-test MapObservationTrackerTest
       - name: Revisar ZIPs de fotogramas sin subir imágenes ni simular reconocimiento
         run: |
           python3 -m compileall -q tools
