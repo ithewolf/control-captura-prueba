@@ -120,6 +120,16 @@ public class MainActivity extends Activity {
     new android.app.AlertDialog.Builder(this).setMessage("Permiso de micrófono concedido. Esto NO demuestra que Vosk pueda escuchar: revisá el estado durante una sesión.").setPositiveButton("Entendido",null).show();
    }else requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},79);
   });
+  Button testSessionVoice=new Button(this);
+  testSessionVoice.setText("Diagnóstico: hacer responder al CONTROL de la sesión");
+  content.addView(testSessionVoice);
+  testSessionVoice.setOnClickListener(v->{
+   if(!CaptureService.active){
+    Toast.makeText(this,"Primero iniciá Pantalla + micrófono",Toast.LENGTH_LONG).show();
+    return;
+   }
+   startService(new Intent(this,CaptureService.class).setAction("TEST_REPLY"));
+  });
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
   Button captureOnly=new Button(this);
   captureOnly.setText("Diagnóstico: capturar solo pantalla (sin micrófono)");
