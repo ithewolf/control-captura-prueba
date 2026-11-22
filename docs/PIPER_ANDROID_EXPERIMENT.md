@@ -2,7 +2,7 @@
 Fecha 2026-11-22 — diseño investigado, NO integración funcional aún.
 
 ## Restricciones verificadas
-- Android 11+? Revisar minSdk actual antes de agregar bibliotecas.
+- Proyecto actual: minSdk 29 (Android 10), compileSdk 35, targetSdk 35, ARM 32 y 64 bits. Revisar compatibilidad de sherpa-onnx en ambas arquitecturas.
 - La captura MediaProjection, el reconocimiento Vosk y la respuesta TTS Android local ya se probaron en teléfono.
 - No instalar otra app de TTS, no requerir PC, Internet, ni API paga durante el juego.
 - Mantener fallback a Android TextToSpeech hasta completar pruebas de motor y voz integrada.
@@ -12,10 +12,10 @@ Fecha 2026-11-22 — diseño investigado, NO integración funcional aún.
 ## Motor candidato
 **sherpa-onnx OfflineTts para Android**, usando una voz Piper ONNX exportada/compatible con el runtime. El proyecto upstream incluye ejemplo Android. No vendorear la APK de otra aplicación ni copiar bibliotecas de terceros sin revisar licencia y redistribución.
 
-Referencias oficiales:
+El repositorio general Piper voices muestra MIT, pero la ficha de la voz Daniela declara Attribution-ShareAlike 4.0. Validar condiciones por voz individual antes de redistribuir su fichero, y atribuciones; no asumir que una etiqueta de repositorio prevalece sobre la ficha del modelo.\n\nReferencias oficiales:
 https://github.com/k2-fsa/sherpa-onnx
 https://k2-fsa.github.io/sherpa/onnx/tts/piper.html
-https://k2-fsa.github.io/sherpa/onnx/tts/apk.html
+https://k2-fsa.github.io/sherpa/onnx/tts/apk.html\nhttps://huggingface.co/rhasspy/piper-voices/blob/main/es/es_AR/daniela/high/MODEL_CARD
 
 ## Ensayo incremental
 1. Rama experimental independiente; elegir UNA voz local en español con licencia de redistribución comprobada. Si no hay voz masculina rioplatense con licencia compatible, usar una voz temporal solo para prueba del motor.
