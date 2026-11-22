@@ -81,6 +81,47 @@ public final class ConversationCore {
         }
     }
 
+    /** Persist the bounded conversation locally, never including the system prompt. */
+    public synchronized String exportHistory(String mode) {
+        ArrayDeque<Message> turns = history.get(normalizeMode(mode));
+        if (turns == null || turns.isEmpty()) return "";
+        StringBuilder out = new StringBuilder("CONTROL_MEMORY_V1\n");
+        java.util.Base64.Encoder encoder = java.util.Base64.getEncoder();
+        for (Message turn : turns) {
+            if (!"user".equals(turn.role) && !"assistant".equals(turn.role)) continue;
+            out.append(turn.role).append(':')
+               .append(encoder.encodeToString(turn.content.getBytes(java.nio.charset.StandardCharsets.UTF_8)))
+               .append('\n');
+        }
+        return out.toString();
+    }
+
+    /** Defensive restore: malformed, oversized or unpaired history is ignored. */
+    public synchronized boolean importHistory(String mode, String saved) {
+        String key = normalizeMode(mode);
+        if (saved == null || saved.isEmpty()) { history.remove(key); return true; }
+        if (saved.length() > 40000 || !saved.startsWith("CONTROL_MEMORY_V1\n")) return false;
+        String[] lines = saved.split("\\n", -1);
+        if (lines.length < 3 || lines.length > MAX_PAIRS * 2 + 2) return false;
+        ArrayDeque<Message> restored = new ArrayDeque<>();
+        try {
+            for (int i = 1; i < lines.length; i++) {
+                if (lines[i].isEmpty()) continue;
+                String expected = restored.size() % 2 == 0 ? "user:" : "assistant:";
+                if (!lines[i].startsWith(expected)) return false;
+                byte[] bytes = java.util.Base64.getDecoder().decode(lines[i].substring(expected.length()));
+                String decoded = new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
+                if (!java.util.Arrays.equals(bytes, decoded.getBytes(java.nio.charset.StandardCharsets.UTF_8))) return false;
+                int limit = expected.equals("user:") ? MAX_INPUT_CHARS : MAX_OUTPUT_CHARS;
+                if (decoded.isEmpty() || decoded.length() > limit) return false;
+                restored.addLast(new Message(expected.substring(0,expected.length()-1), decoded));
+            }
+        } catch (IllegalArgumentException ex) { return false; }
+        if (restored.size() % 2 != 0 || restored.size() > MAX_PAIRS * 2) return false;
+        history.put(key, restored);
+        return true;
+    }
+
     public synchronized int rememberedPairs(String mode) {
         ArrayDeque<Message> turns = history.get(normalizeMode(mode));
         return turns == null ? 0 : turns.size() / 2;
