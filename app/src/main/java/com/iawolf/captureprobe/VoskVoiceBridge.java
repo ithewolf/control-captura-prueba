@@ -167,9 +167,9 @@ public final class VoskVoiceBridge implements RecognitionListener {
    // A temporary opt-in test, not the normal voice assistant. Restrict to
    // nontrivial phrases; background TV/game speech can still trigger this mode.
    String[] words=heard.trim().split("\\s+");
-   boolean freeAccept=freeDiagnostic && words.length>=3 && words.length<=12;
+   boolean freeAccept=freeDiagnostic && words.length>=2 && words.length<=20;
    CaptureService.wakeStatus=wake?"Comando CONTROL reconocido":
-      (freeAccept?"Prueba temporal: frase aceptada sin CONTROL":
+      (freeAccept?"Prueba sin CONTROL: texto aceptado para intérprete básico":
        "Texto transcrito sin comando reconocible");
    long during=Math.max(0L,CaptureService.received-listenFrameBaseline);
    CaptureService.framesDuringLastListen=during;
@@ -180,7 +180,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
      LocalIntent.reply(heard,mode,visual.fresh,visual.dark,CaptureService.active):null;
    if(reply!=null){CaptureService.lastReply=reply;say(reply);}
    else if(wake||freeAccept){
-    CaptureService.wakeStatus="Frase entendida como texto; intención fuera del intérprete básico";
+    CaptureService.wakeStatus="Vosk escuchó correctamente; falta intérprete conversacional para esta pregunta";
     CaptureService.lastReply="Sin respuesta conversacional: falta integrar modelo local";
     if(!unexplainedIntentNotified){
      unexplainedIntentNotified=true;
