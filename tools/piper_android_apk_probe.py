@@ -24,8 +24,8 @@ with zipfile.ZipFile(apk) as z:
        "voice_model_bytes":sum(z.getinfo(n).file_size for n in voice_assets),
        "voice_assets_count":len(voice_assets),
        "sherpa_native_binaries":sherpa,
-       "status":"Piper-compatible runtime AND voice assets packaged; TTS still NOT wired to Android service",
-       "not_validated":["Actual speech playback","Vosk coexistence",
+       "status":"Piper runtime, voice and Java integration packaged; real-device playback NOT verified",
+       "not_validated":["Actual speech playback on Android hardware","Vosk coexistence",
        "memory usage","gameplay FPS","device startup"]}
 p=pathlib.Path("build/piper-android-packaging/report.json")
 p.parent.mkdir(parents=True,exist_ok=True)
