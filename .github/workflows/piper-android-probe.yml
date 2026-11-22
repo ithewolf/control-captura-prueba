@@ -4,6 +4,7 @@ on:
     branches: [lab4-piper-android-integration]
     paths:
       - 'app/build.gradle'
+      - 'app/src/main/java/com/iawolf/captureprobe/**'
       - '.github/workflows/piper-android-probe.yml'
       - 'tools/piper_android_apk_probe.py'
       - 'tools/stage_piper_android_voice.py'
@@ -51,7 +52,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: CONTROL-LAB4-Piper-Android-PACKAGING-NOT-READY
+          name: CONTROL-LAB4-Piper-EXPERIMENTAL-UNTESTED
           path: |
             app/build/outputs/apk/debug/*.apk
             build/piper-android-packaging/report.json
