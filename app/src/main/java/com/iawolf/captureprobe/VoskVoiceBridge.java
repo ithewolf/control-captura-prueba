@@ -173,11 +173,8 @@ public final class VoskVoiceBridge implements RecognitionListener {
    if(during>0)CaptureService.simultaneousAvObserved=true;
    AvContext.Snapshot visual=AvContext.snapshot(CaptureService.sessionStartedAt,SystemClock.elapsedRealtime());
    String mode=context.getSharedPreferences("control_mode",Context.MODE_PRIVATE).getString("mode","coach");
-   String reply=AvContext.respond(heard,visual,mode);
-   if(reply==null && freeAccept)
-     reply="companero".equals(mode)
-        ?"Wolf, modo compañero de prueba. Recibí una frase, aunque Vosk todavía puede equivocarse."
-        :"Wolf, modo coach de prueba. Recibí una frase sin la palabra CONTROL; todavía no doy consejos tácticos.";
+   String reply=(wake||freeAccept)?
+     LocalIntent.reply(heard,mode,visual.fresh,visual.dark,CaptureService.active):null;
    if(reply!=null){CaptureService.lastReply=reply;say(reply);}
    else CaptureService.wakeStatus="Texto transcrito, pero no pasó el filtro de activación";
   });
