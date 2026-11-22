@@ -20,6 +20,7 @@ public class MainActivity extends Activity {
  private Button chooseVoiceButton;
  private String selectedMode="";
  private boolean welcomeSpoken=false;
+ private boolean projectionCaptureOnly=false;
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
    "\nVoz TTS: "+CaptureService.ttsStatus+" · Motor: "+CaptureService.ttsVoice+
@@ -122,8 +123,8 @@ public class MainActivity extends Activity {
   content.addView(captureOnly);
   captureOnly.setOnClickListener(v->new android.app.AlertDialog.Builder(this)
    .setTitle("Prueba de captura independiente")
-   .setMessage("Esta prueba solicitará únicamente autorización de pantalla. No iniciará Vosk si el micrófono no tiene permiso; si ya tiene permiso, la app podría iniciar también la escucha. Usá el estado de sesión para distinguirlo.")
-   .setPositiveButton("Continuar",(d,w)->beginProjectionConsent())
+   .setMessage("Esta prueba solicitará únicamente autorización de pantalla y no iniciará Vosk, aunque el micrófono tenga permiso.")
+   .setPositiveButton("Continuar",(d,w)->beginProjectionConsent(true))
    .setNegativeButton("Cancelar",null).show());
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
   start.setOnClickListener(v->new android.app.AlertDialog.Builder(this)
@@ -247,13 +248,14 @@ public class MainActivity extends Activity {
     .setTitle("Permiso de micrófono pendiente")
     .setMessage("Para probar imagen y voz, permití el micrófono. Si Android no lo concede, podés probar la captura de pantalla por separado.")
     .setPositiveButton("Solicitar micrófono",(d,w)->requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},78))
-    .setNeutralButton("Solo pantalla",(d,w)->beginProjectionConsent())
+    .setNeutralButton("Solo pantalla",(d,w)->beginProjectionConsent(true))
     .setNegativeButton("Cancelar",null).show();
    return;
   }
-  beginProjectionConsent();
+  beginProjectionConsent(false);
  }
- private void beginProjectionConsent(){
+ private void beginProjectionConsent(boolean captureOnly){
+  projectionCaptureOnly=captureOnly;
   if(CaptureService.active){Toast.makeText(this,"Detené la sesión anterior",Toast.LENGTH_SHORT).show();return;}
   MediaProjectionManager m=(MediaProjectionManager)getSystemService(MEDIA_PROJECTION_SERVICE);
   Intent request=android.os.Build.VERSION.SDK_INT>=34
@@ -267,7 +269,7 @@ public class MainActivity extends Activity {
    if(results.length>0 && results[0]==PackageManager.PERMISSION_GRANTED)requestCapture();
    else new android.app.AlertDialog.Builder(this).setTitle("Micrófono no autorizado")
     .setMessage("Podemos comprobar la captura igualmente. La escucha seguirá sin funcionar hasta conceder el permiso.")
-    .setPositiveButton("Probar pantalla",(d,w)->beginProjectionConsent())
+    .setPositiveButton("Probar pantalla",(d,w)->beginProjectionConsent(true))
     .setNegativeButton("Cancelar",null).show();
   }else if(code==79){
    boolean granted=results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED;
@@ -278,6 +280,7 @@ public class MainActivity extends Activity {
   if(request==77 && result==RESULT_OK && data!=null){
     Intent i=new Intent(this,CaptureService.class).setAction("START");
     i.putExtra("resultCode",result);i.putExtra("projectionData",data);
+    i.putExtra("captureOnly",projectionCaptureOnly);
     startForegroundService(i);
   }
  }
