@@ -33,6 +33,7 @@ public final class Lab6TextActivity extends Activity {
  private EditText input,championInput,roleInput;
  private PlayerHistoryDatabase playerHistory;
  private Button importButton,askButton,forgetButton,saveProfileButton;
+ private android.widget.Spinner tacticalScenario;
 
  @Override public void onCreate(Bundle saved){
   super.onCreate(saved);
@@ -44,6 +45,18 @@ public final class Lab6TextActivity extends Activity {
   status=new TextView(this);status.setText("Falta cargar modelo .litertlm desde el telefono. No hay descargas automaticas.");l.addView(status);
   importButton=new Button(this);importButton.setText("Importar modelo .litertlm");l.addView(importButton);
   input=new EditText(this);input.setHint("Escribile una pregunta nueva a CONTROL");input.setMinLines(2);l.addView(input);
+  android.widget.TextView lab8Note=new TextView(this);
+  lab8Note.setText("LAB 8: casos TACTICOS SIMULADOS (no reconocidos por vision). Elegir un ejemplo solo sirve para comprobar decisiones y conversacion.");
+  l.addView(lab8Note);
+  tacticalScenario=new android.widget.Spinner(this);
+  String[] options={"Sin datos tacticos (conversacion libre)",
+    "SIMULADO: Yasuo 28% vida, 2 enemigos, 0 aliados",
+    "SIMULADO: Yasuo 90% vida, oleada visible, 0 enemigos",
+    "SIMULADO: Fiora 85% vida, enemigo 20%, habilidad lista",
+    "SIMULADO: Warwick, imagen sin informacion fiable"};
+  android.widget.ArrayAdapter<String> tacticalAdapter=new android.widget.ArrayAdapter<>(
+    this,android.R.layout.simple_spinner_dropdown_item,options);
+  tacticalScenario.setAdapter(tacticalAdapter);l.addView(tacticalScenario);
   askButton=new Button(this);askButton.setText("Generar respuesta con IA local");askButton.setEnabled(false);l.addView(askButton);
   championInput=new EditText(this);championInput.setHint("Campeón que usaste (registro manual)");l.addView(championInput);
   roleInput=new EditText(this);roleInput.setHint("Rol: Baron, Jungla, Mid, ADC o Soporte");l.addView(roleInput);
@@ -136,7 +149,9 @@ public final class Lab6TextActivity extends Activity {
    String mode=getSharedPreferences("control_mode",MODE_PRIVATE).getString("mode","coach");
    long started=android.os.SystemClock.elapsedRealtime();
    String profile="coach".equals(mode)?playerHistory.recentPrompt(8):"";
-   ConversationCore.Answer answer=brain.respond(mode,question,new ConversationCore.VisionStatus(false,false,false),profile);
+   TacticalDecisionEngine.State scenario=lab8Scenario(tacticalScenario.getSelectedItemPosition());
+   if(scenario!=null) profile += " Caso de laboratorio SIMULADO, no detectado en pantalla. ";
+   ConversationCore.Answer answer=brain.respond(mode,question,new ConversationCore.VisionStatus(false,false,false),profile,scenario);
    long duration=android.os.SystemClock.elapsedRealtime()-started;
    if(answer.ready) getSharedPreferences("control_lab7_local_history",MODE_PRIVATE)
        .edit().putString(mode,brain.exportHistory(mode)).commit();
@@ -147,6 +162,15 @@ public final class Lab6TextActivity extends Activity {
    });
    busy.set(false);refresh();
   });
+ }
+ private TacticalDecisionEngine.State lab8Scenario(int i) {
+  switch(i) {
+    case 1: return new TacticalDecisionEngine.State(28,2,0,75,true,true,false,true,true);
+    case 2: return new TacticalDecisionEngine.State(90,0,0,-1,true,true,true,false,false);
+    case 3: return new TacticalDecisionEngine.State(85,1,0,20,true,true,false,true,true);
+    case 4: return new TacticalDecisionEngine.State(-1,-1,-1,-1,false,false,false,false,false);
+    default: return null;
+  }
  }
  private void state(String text){if(!destroyed)runOnUiThread(()->{status.setText(text);askButton.setEnabled(false);importButton.setEnabled(false);forgetButton.setEnabled(false);saveProfileButton.setEnabled(false);});}
  private void refresh(){if(!destroyed)runOnUiThread(()->{askButton.setEnabled(!busy.get()&&brain!=null);importButton.setEnabled(!busy.get());forgetButton.setEnabled(!busy.get());saveProfileButton.setEnabled(!busy.get());});}
