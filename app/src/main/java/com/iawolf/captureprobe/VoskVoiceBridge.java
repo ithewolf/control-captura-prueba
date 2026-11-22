@@ -211,10 +211,12 @@ public final class VoskVoiceBridge implements RecognitionListener {
  private boolean applyPreferredVoice(){
   if(tts==null)return false;
   Set<Voice> voices=tts.getVoices();Voice best=null;int rank=-1;
-  String saved=context.getSharedPreferences("control_voice_settings",Context.MODE_PRIVATE)
-      .getString("voice_name","");
+  android.content.SharedPreferences voicePrefs=context.getSharedPreferences(
+      "control_voice_settings",Context.MODE_PRIVATE);
+  String saved=voicePrefs.getString("voice_name","");
+  boolean allowNetwork=voicePrefs.getBoolean("allow_network_tts",false);
   if(voices!=null)for(Voice v:voices){
-   if(v.isNetworkConnectionRequired())continue;
+   if(v.isNetworkConnectionRequired() && !allowNetwork)continue;
    Locale loc=v.getLocale();if(loc==null)continue;
    if(v.getName().equals(saved)){best=v;break;}
    if(!"es".equalsIgnoreCase(loc.getLanguage()))continue;
@@ -229,7 +231,8 @@ public final class VoskVoiceBridge implements RecognitionListener {
    return false;
   }
   ttsReady=true;
-  CaptureService.ttsVoice=best.getName()+" ("+best.getLocale().toLanguageTag()+")";
+  CaptureService.ttsVoice=best.getName()+" ("+best.getLocale().toLanguageTag()+")"
+      +(best.isNetworkConnectionRequired()?" · requiere internet":" · sin conexión");
   CaptureService.ttsStatus="TTS local preparado";
   return true;
  }
