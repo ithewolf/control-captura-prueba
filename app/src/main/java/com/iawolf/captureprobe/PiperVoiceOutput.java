@@ -12,6 +12,9 @@ import com.k2fsa.sherpa.onnx.OfflineTtsConfig;
 import com.k2fsa.sherpa.onnx.OfflineTtsModelConfig;
 import com.k2fsa.sherpa.onnx.OfflineTtsVitsModelConfig;
 import java.util.concurrent.ExecutorService;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.concurrent.Executors;
 
 /** Lab4-only, opt-in Piper engine. Never blocks mic or Android main thread. */
@@ -34,7 +37,7 @@ final class PiperVoiceOutput {
      OfflineTtsVitsModelConfig vits=new OfflineTtsVitsModelConfig();
      vits.setModel(DIR+"es_MX-ald-medium.onnx");
      vits.setTokens(DIR+"tokens.txt");
-     vits.setDataDir(DIR+"espeak-ng-data");
+     vits.setDataDir(preparePhonemizer());
      OfflineTtsModelConfig model=new OfflineTtsModelConfig();
      model.setVits(vits);
      model.setNumThreads(1);model.setProvider("cpu");
@@ -93,6 +96,32 @@ final class PiperVoiceOutput {
    final boolean success=ok;final String status=reason;
    main.post(()->{if(!closed)callback.completed(success,status);});
   });
+ }
+ // Piper/eSpeak requires real filesystem paths on Android for pronunciation tables.
+ // Copy only the bundled phonemizer on the dedicated worker; never on the UI thread.
+ private String preparePhonemizer() throws Exception {
+  String assetDir=DIR+"espeak-ng-data";
+  File dest=new File(context.getFilesDir(),"piper/espeak-ng-data");
+  copyAssetTree(assetDir,dest);
+  return dest.getAbsolutePath();
+ }
+ private void copyAssetTree(String assetDir,File dest) throws Exception {
+  String[] children=context.getAssets().list(assetDir);
+  if(children==null||children.length==0){
+   if(dest.isFile()&&dest.length()>0)return;
+   File parent=dest.getParentFile();
+   if(parent==null||(!parent.isDirectory()&&!parent.mkdirs()))
+     throw new IllegalStateException("Piper: no se puede crear carpeta de voz");
+   try(InputStream in=context.getAssets().open(assetDir);
+       FileOutputStream out=new FileOutputStream(dest)){
+    byte[] bytes=new byte[16384];int n;
+    while((n=in.read(bytes))!=-1)out.write(bytes,0,n);
+   }
+   return;
+  }
+  if(!dest.isDirectory()&&!dest.mkdirs())
+   throw new IllegalStateException("Piper: no se puede crear carpeta de pronunciación");
+  for(String child:children)copyAssetTree(assetDir+"/"+child,new File(dest,child));
  }
  void close(){
   closed=true;
