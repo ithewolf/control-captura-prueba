@@ -1,0 +1,46 @@
+name: CONTROL Piper Android isolated packaging proof
+on:
+  push:
+    branches: [lab4-piper-android-integration]
+    paths:
+      - 'app/build.gradle'
+      - '.github/workflows/piper-android-probe.yml'
+      - 'tools/piper_android_apk_probe.py'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: lab4-piper-android-probe
+  cancel-in-progress: true
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Download audited Sherpa AAR into isolated Gradle app
+        shell: bash
+        run: |
+          mkdir -p app/libs
+          curl -fL --retry 3 --retry-all-errors --retry-delay 4 --max-time 240 -o app/libs/sherpa-onnx-1.12.40.aar \
+            https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.40/sherpa-onnx-1.12.40.aar
+          test "$(stat -c%s app/libs/sherpa-onnx-1.12.40.aar)" -eq 56480361
+      - name: Build isolated Android APK with extra native runtime (model NOT packaged)
+        shell: bash
+        run: gradle :app:assembleDebug -PpiperProbe --no-daemon --stacktrace
+      - name: Audit packaged Android ABI and APK size
+        run: python tools/piper_android_apk_probe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CONTROL-LAB4-Piper-Android-PACKAGING-NOT-READY
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            build/piper-android-packaging/report.json
+          if-no-files-found: warn
