@@ -236,6 +236,9 @@ public final class VoskVoiceBridge implements RecognitionListener {
  }
 
  public void stop(){
+  // Never leave no-wake diagnostics enabled after an active voice session ends.
+  context.getSharedPreferences("control_voice_diag",Context.MODE_PRIVATE)
+    .edit().putBoolean("free_listen",false).apply();
   main.post(()->{
    running=false;speaking=false;prepared=false;
    main.removeCallbacksAndMessages(null);
