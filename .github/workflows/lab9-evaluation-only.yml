@@ -1,0 +1,44 @@
+name: CONTROL Lab9 - vision and tactical checks ONLY (NO APK)
+on:
+  push:
+    branches: [lab9-enemy-identification-eval-20261122]
+    paths:
+      - 'app/src/main/java/com/iawolf/captureprobe/TacticalDecisionEngine.java'
+      - 'app/src/main/java/com/iawolf/captureprobe/EnemyObservationGate.java'
+      - 'tests/TacticalDecisionEngineTest.java'
+      - 'tests/EnemyObservationGateTest.java'
+      - 'tools/lab9*'
+      - 'tools/tests/test_lab9*'
+      - '.github/workflows/lab9-evaluation-only.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-unit-evaluation:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Test tactical and temporal enemy verification
+        run: |
+          mkdir -p /tmp/lab9
+          javac -encoding UTF-8 -d /tmp/lab9 app/src/main/java/com/iawolf/captureprobe/TacticalDecisionEngine.java tests/TacticalDecisionEngineTest.java
+          java -cp /tmp/lab9 TacticalDecisionEngineTest
+          javac -encoding UTF-8 -d /tmp/lab9 app/src/main/java/com/iawolf/captureprobe/EnemyObservationGate.java tests/EnemyObservationGateTest.java
+          java -cp /tmp/lab9 EnemyObservationGateTest
+      - name: Test video evaluation harness and data separation
+        run: |
+          python3 -m compileall -q tools/lab9_video_benchmark.py tools/tests/test_lab9_video_benchmark.py
+          python3 -m unittest discover -s tools/tests -p 'test_lab9_video_benchmark.py' -v
+          python3 tools/lab9_video_benchmark.py --manifest tools/lab9_manifest.json --output /tmp/lab9-report
+      - name: Publish honest evidence report (videos not present in runner)
+        uses: actions/upload-artifact@v4
+        with:
+          name: CONTROL-Lab9-Test-Report-NO-APK
+          path: /tmp/lab9-report/evaluation.json
+          if-no-files-found: error
+          retention-days: 3
