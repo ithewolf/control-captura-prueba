@@ -78,12 +78,17 @@ final class PiperVoiceOutput {
      }
      if(closed)throw new IllegalStateException("Piper interrumpido");
      // Wait for queued PCM playback to finish before resuming microphone.
-     int queued=track.getPlaybackHeadPosition();
-     long deadline=android.os.SystemClock.elapsedRealtime()+Math.min(2000,1000L*buffer/rate+600);
-     while(queued<samples.length && android.os.SystemClock.elapsedRealtime()<deadline&&!closed){
+     long played=track.getPlaybackHeadPosition() & 0xffffffffL;
+     // AudioTrack.write() only queues PCM; never stop a long reply after 2 seconds.
+     long remaining=Math.max(0L,samples.length-played);
+     long drainMillis=Math.min(45000L,1000L*remaining/rate+1500L);
+     long deadline=android.os.SystemClock.elapsedRealtime()+drainMillis;
+     while(played<samples.length && android.os.SystemClock.elapsedRealtime()<deadline&&!closed){
       android.os.SystemClock.sleep(25);
-      queued=track.getPlaybackHeadPosition();
+      played=track.getPlaybackHeadPosition() & 0xffffffffL;
      }
+     if(!closed && played<samples.length)
+      throw new IllegalStateException("Audio incompleto: "+played+"/"+samples.length);
      ok=!closed;
      reason=ok?"audio Piper reproducido":"audio Piper interrumpido";
     }finally{
