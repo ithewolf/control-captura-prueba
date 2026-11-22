@@ -33,6 +33,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
  private AcousticEchoCanceler echoCanceler;
  private Model model;
  private TextToSpeech tts;
+ private PiperVoiceOutput piper;
  private boolean running=false, speaking=false, prepared=false, ttsReady=false;
  private boolean unexplainedIntentNotified=false;
  private long lastTtsFinished=-1L, listenFrameBaseline=0L;
@@ -233,7 +234,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
  }
  public void refreshSelectedVoice(){
   main.post(()->{
-   if(!running||tts==null)return;
+   if(!running)return;
    if(speaking){
     CaptureService.ttsStatus="Cambio de voz pendiente hasta que termine de hablar";
     main.postDelayed(this::refreshSelectedVoice,1000L);
@@ -258,12 +259,35 @@ public final class VoskVoiceBridge implements RecognitionListener {
   });
  }
  private void say(String words){
-  if(!ttsReady||tts==null){CaptureService.ttsStatus="respuesta disponible solo en texto";return;}
-  speaking=true;
-  haltListening(); // Never transcribe CONTROL's own TTS.
-  if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")!=TextToSpeech.SUCCESS){
-   finishSpeech(false);
+  boolean usePiper="piper".equals(context.getSharedPreferences(
+     "control_voice_settings",Context.MODE_PRIVATE).getString("voice_source","device"));
+  if(!usePiper && (!ttsReady||tts==null)){
+   CaptureService.ttsStatus="respuesta disponible solo en texto";return;
   }
+  speaking=true;
+  haltListening(); // Never transcribe CONTROL's own speech.
+  if(usePiper){
+   CaptureService.ttsStarted++;
+   CaptureService.ttsStatus="Piper: generando voz sin conexión (laboratorio)";
+   CaptureService.ttsVoice="Piper Ald (es-MX, provisional)";
+   if(piper==null)piper=new PiperVoiceOutput(context);
+   piper.speak(words,(ok,reason)->{
+    if(!running)return;
+    if(ok){
+     CaptureService.ttsStatus="Piper: "+reason;
+     finishSpeech(true);
+    }else{
+     CaptureService.ttsStatus="Piper falló: "+reason+"; usando voz del dispositivo";
+     if(ttsReady&&tts!=null){
+      if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")!=TextToSpeech.SUCCESS)
+       finishSpeech(false);
+     }else finishSpeech(false);
+    }
+   });
+   return;
+  }
+  if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")!=TextToSpeech.SUCCESS)
+   finishSpeech(false);
  }
  private void finishSpeech(boolean ok){
   if(!running)return;
@@ -281,6 +305,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
    running=false;speaking=false;prepared=false;
    main.removeCallbacksAndMessages(null);
    haltListening();
+   if(piper!=null){piper.close();piper=null;}
    if(tts!=null){tts.stop();tts.shutdown();tts=null;}
    if(model!=null){model.close();model=null;}
   });
