@@ -8,6 +8,7 @@ on:
       - '.github/workflows/piper-android-probe.yml'
       - 'tools/piper_android_apk_probe.py'
       - 'tools/stage_piper_android_voice.py'
+      - 'tools/test_next_stage_piper_contract.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -44,7 +45,9 @@ jobs:
             javap -classpath build/piper-java-api/classes.jar -public "com.k2fsa.sherpa.onnx.$cls" >> build/piper-java-api/api.txt
           done
           cat build/piper-java-api/api.txt
-      - name: Build isolated Android APK with native runtime and voice assets (playback NOT wired)
+      - name: Verify Piper/Vosk integration contract without claiming real playback
+        run: python -m unittest discover -s tools -p 'test_next_stage_piper_contract.py' -v
+      - name: Build isolated Android APK with native runtime and voice assets (device playback unverified)
         shell: bash
         run: gradle :app:assembleDebug -PpiperProbe --no-daemon --stacktrace
       - name: Audit packaged Android ABI and APK size
