@@ -42,6 +42,14 @@ class MetricsTests(unittest.TestCase):
         predictions=[record(confidence=".9")]
         scored=bench.evaluate(labels,predictions,SPLIT)["splits"]["development"]
         self.assertEqual((scored["true_positive"],scored["false_positive"]),(0,1))
+    def test_zero_reviewed_rows_are_not_measured(self):
+        result=bench.evaluate([], [], SPLIT)
+        self.assertEqual(result["status"], "NOT_MEASURED")
+        self.assertEqual(result["splits"]["held_out"]["status"], "NOT_MEASURED")
+    def test_partial_source_coverage_is_explicit(self):
+        result=bench.evaluate([record()], [record(confidence=".9")], SPLIT)
+        self.assertEqual(result["status"], "PARTIALLY_MEASURED")
+        self.assertEqual(result["splits"]["held_out"]["status"], "NOT_MEASURED")
     def test_no_labels_no_metrics(self):
         self.assertEqual(bench.evaluate(None,[],SPLIT)["status"],"NOT_MEASURED")
     def test_unknown_source_rejected(self):
