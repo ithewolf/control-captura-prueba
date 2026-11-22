@@ -1,0 +1,11 @@
+# Champion identities only; never mix with hp dataset.yaml
+path: ./champion_dataset
+train: images/train
+val: images/val
+test: images/test
+names:
+  0: fiora
+  1: sett
+  2: syndra
+  3: yasuo
+  4: warwick
