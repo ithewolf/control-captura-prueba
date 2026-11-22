@@ -23,6 +23,7 @@ dependencies {
  // Never enable on the production Lite build without device validation.
  if (project.hasProperty('piperProbe')) {
   implementation files('libs/sherpa-onnx-1.12.40.aar')
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.25'
  }
 }
 
