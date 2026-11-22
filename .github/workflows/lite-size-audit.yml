@@ -39,6 +39,11 @@ jobs:
           mkdir -p build/smoke
           javac -d build/smoke app/src/main/java/com/iawolf/captureprobe/FrameSampler.java tests/FrameSamplerSmokeTest.java
           java -cp build/smoke com.iawolf.captureprobe.FrameSamplerSmokeTest
+      - name: Test wake-word activation with Java
+        run: |
+          mkdir -p build/wake
+          javac -d build/wake app/src/main/java/com/iawolf/captureprobe/WakeGate.java tests/WakeGateSmokeTest.java
+          java -cp build/wake com.iawolf.captureprobe.WakeGateSmokeTest
       - name: Build isolated debug APK
         run: |
           set -o pipefail
