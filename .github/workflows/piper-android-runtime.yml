@@ -1,0 +1,29 @@
+name: Piper Android native runtime availability (not APK)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/audit_piper_android_runtime.py'
+      - '.github/workflows/piper-android-runtime.yml'
+permissions:
+  contents: read
+concurrency:
+  group: piper-android-runtime
+  cancel-in-progress: true
+jobs:
+  native-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Discover matching Sherpa-ONNX Android runtime release
+        run: python tools/audit_piper_android_runtime.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CONTROL-Piper-Android-RUNTIME-AVAILABILITY-NOT-APK
+          path: build/piper-android-audit/runtime-assets.json
+          if-no-files-found: warn
