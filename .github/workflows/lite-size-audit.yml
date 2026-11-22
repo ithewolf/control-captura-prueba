@@ -48,6 +48,11 @@ jobs:
           mkdir -p build/wake
           javac -d build/wake app/src/main/java/com/iawolf/captureprobe/WakeGate.java tests/WakeGateSmokeTest.java
           java -cp build/wake com.iawolf.captureprobe.WakeGateSmokeTest
+      - name: Verify local intent replies in Java
+        run: |
+          mkdir -p build/local-intent
+          javac -d build/local-intent app/src/main/java/com/iawolf/captureprobe/LocalIntent.java tests/LocalIntentSmokeTest.java
+          java -cp build/local-intent com.iawolf.captureprobe.LocalIntentSmokeTest
       - name: Build isolated debug APK
         run: |
           set -o pipefail
