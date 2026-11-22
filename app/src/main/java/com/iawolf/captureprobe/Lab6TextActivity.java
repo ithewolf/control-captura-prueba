@@ -94,6 +94,9 @@ public final class Lab6TextActivity extends Activity {
    state("Importado ("+(length/(1024*1024))+" MB), SHA-256: "+fingerprint.substring(0,16)+"... Inicializando LiteRT-LM local en CPU...");
    model=new LiteRtTextModel(dest,getCacheDir());
    brain=new ConversationCore(model);
+   android.content.SharedPreferences memory=getSharedPreferences("control_lab7_local_history",MODE_PRIVATE);
+   brain.importHistory("coach",memory.getString("coach",""));
+   brain.importHistory("companero",memory.getString("companero",""));
    state("Modelo LOCAL cargado. Escribi una pregunta que no este programada.");
   }catch(Throwable e){state("Modelo NO listo: "+e.getClass().getSimpleName()+": "+e.getMessage());}
   finally{if(tmp.exists())tmp.delete();busy.set(false);refresh();}
@@ -108,10 +111,12 @@ public final class Lab6TextActivity extends Activity {
    long started=android.os.SystemClock.elapsedRealtime();
    ConversationCore.Answer answer=brain.respond(mode,question,new ConversationCore.VisionStatus(false,false,false));
    long duration=android.os.SystemClock.elapsedRealtime()-started;
+   if(answer.ready) getSharedPreferences("control_lab7_local_history",MODE_PRIVATE)
+       .edit().putString(mode,brain.exportHistory(mode)).commit();
    if(!destroyed)runOnUiThread(()->{
     output.append("\nWolf: "+question+"\n"+(answer.ready?"CONTROL: "+answer.text:"ERROR: "+answer.detail)+"\n");
     input.setText("");
-    status.setText((answer.ready?"Respuesta generada":"Sin respuesta")+" / "+duration+" ms / "+mode);
+    status.setText((answer.ready?"Respuesta generada":"Sin respuesta")+" / "+duration+" ms / "+mode+" / memoria: "+brain.rememberedPairs(mode)+" intercambios");
    });
    busy.set(false);refresh();
   });
