@@ -7,7 +7,8 @@ android {
 }
 
 dependencies {
- // Remove redundant direct JNA declaration; keep Vosk transitive dependencies.
+ // JNA is needed by Vosk; @aar artifact-only notation does not guarantee transitive resolution.
+ implementation 'net.java.dev.jna:jna:5.18.1@aar'
  implementation 'com.alphacephei:vosk-android:0.3.75@aar'
 }
 
