@@ -35,6 +35,8 @@ public final class LocalIntent {
    return companion?"¡De una, Wolf!":"De nada, Wolf.";
   if(any(s,"chau","adios","hasta luego"))
    return "Nos vemos, Wolf.";
-  return "Te escuché, pero todavía no entiendo esa pregunta. Podés preguntarme si te escucho, qué modo uso o si recibo la pantalla.";
+  // Unknown input belongs to a future local conversational model; do not
+  // repeatedly pretend that deterministic keyword routing is understanding.
+  return null;
  }
 }
