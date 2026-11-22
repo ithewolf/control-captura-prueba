@@ -52,7 +52,7 @@ public final class Lab6TextActivity extends Activity {
   String[] options={"Sin datos tacticos (conversacion libre)",
     "SIMULADO: Yasuo 28% vida, 2 enemigos, 0 aliados",
     "SIMULADO: Yasuo 90% vida, oleada visible, 0 enemigos",
-    "SIMULADO: Fiora 85% vida, enemigo 20%, habilidad lista",
+    "SIMULADO: Fiora 85% vida, enemigo identificado (sin HP enemigo)",
     "SIMULADO: Warwick, imagen sin informacion fiable"};
   android.widget.ArrayAdapter<String> tacticalAdapter=new android.widget.ArrayAdapter<>(
     this,android.R.layout.simple_spinner_dropdown_item,options);
@@ -166,10 +166,10 @@ public final class Lab6TextActivity extends Activity {
  }
  private TacticalDecisionEngine.State lab8Scenario(int i) {
   switch(i) {
-    case 1: return new TacticalDecisionEngine.State(28,2,0,75,true,true,false,true,true);
-    case 2: return new TacticalDecisionEngine.State(90,0,0,-1,true,true,true,false,false);
-    case 3: return new TacticalDecisionEngine.State(85,1,0,20,true,true,false,true,true);
-    case 4: return new TacticalDecisionEngine.State(-1,-1,-1,-1,false,false,false,false,false);
+    case 1: return new TacticalDecisionEngine.State(28,2,0,true,true,false,true,true);
+    case 2: return new TacticalDecisionEngine.State(90,0,0,true,true,true,false,false);
+    case 3: return new TacticalDecisionEngine.State(85,1,0,true,true,false,true,true);
+    case 4: return new TacticalDecisionEngine.State(-1,-1,-1,false,false,false,false,false);
     default: return null;
   }
  }
