@@ -99,14 +99,26 @@ def evaluate(labels, predictions, split_map):
 
     results = {}
     for split in ("development", "held_out"):
-        tp = fp = fn = 0
+        tp = fp = fn = skipped_unreviewed = 0
+        reviewed_frames = 0
         for vid, video_split in split_map.items():
             if video_split != split:
                 continue
-            ground_truth = [r for r in reviewed[vid] if identity(r)[1] == "ENEMY"]
+            video_labels = reviewed[vid]
+            reviewed_frames += len(video_labels)
+            ground_truth = [r for r in video_labels if identity(r)[1] == "ENEMY"]
             predictions_here = sorted(detected[vid], key=lambda r: -float(r["confidence"]))
             used_labels = set()
             for prediction in predictions_here:
+                # An unreviewed timestamp cannot count as a false positive
+                # or a true positive. Annotations define evaluation coverage.
+                in_reviewed_window = any(
+                    abs(float(prediction["time_s"]) - float(label["time_s"])) <= .5
+                    for label in video_labels
+                )
+                if not in_reviewed_window:
+                    skipped_unreviewed += 1
+                    continue
                 same_identity = [
                     (abs(float(prediction["time_s"]) - float(label["time_s"])), idx)
                     for idx, label in enumerate(ground_truth)
@@ -122,10 +134,12 @@ def evaluate(labels, predictions, split_map):
             fn += len(ground_truth) - len(used_labels)
         results[split] = {
             "true_positive": tp, "false_positive": fp, "false_negative": fn,
+            "reviewed_frames": reviewed_frames,
+            "unscored_predictions_outside_reviewed_frames": skipped_unreviewed,
             "precision": round(tp/(tp+fp), 4) if tp+fp else None,
             "recall": round(tp/(tp+fn), 4) if tp+fn else None,
-            "note": "One-to-one time-and-identity matches to independently human-reviewed labels",
-            "limitation": "Unreviewed timestamps cannot be treated as verified negatives",
+            "note": "One-to-one matches within human-reviewed timestamp windows only",
+            "limitation": "Metrics only describe reviewed frames, not full-video performance",
         }
     return {"status": "MEASURED", "splits": results}
 
