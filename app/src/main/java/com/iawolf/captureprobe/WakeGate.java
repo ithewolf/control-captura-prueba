@@ -18,7 +18,7 @@ public final class WakeGate {
   for(int i=0;i<tokens.length;i++){
     boolean wake=tokens[i].equals("control") ||
         (tokens[i].equals("con") && i+1<tokens.length && tokens[i+1].equals("trol"));
-    if(!wake)continue;
+    if(!wake || i>2)continue;
     // A wake word with no request is not sufficient; bare greeting allowed.
     int start=i+(tokens[i].equals("con")?2:1);
     for(int j=0;j<tokens.length;j++)
