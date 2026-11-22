@@ -29,12 +29,17 @@ public final class ConversationCoreTest {
         check(!captured.get(2).get(0).content.contains("Modo Compañero"), "mode isolation");
         for(int i=0;i<8;i++)core.respond("companero", "nueva pregunta "+i, none);
         check(core.rememberedPairs("companero") == 6, "memory remains bounded");
+        List<ConversationCore.Message> promptAfterSix = captured.get(captured.size()-1);
+        check(promptAfterSix.size() <= 8, "send at most three saved exchanges plus system and question");
+
         String saved = core.exportHistory("companero");
         ConversationCore restored = new ConversationCore(messages -> "Nueva respuesta");
         check(restored.importHistory("companero", saved), "restore saved memory");
         check(restored.rememberedPairs("companero") == 6, "six exchanges restored");
         check(restored.rememberedPairs("coach") == 0, "restore keeps modes isolated");
         check(!restored.importHistory("companero", "corrupt"), "reject corrupt memory");
+        check(!restored.importHistory("companero", saved.replace("assistant:", "\\nassistant:")), "reject blank middle turn");
+        check(!restored.importHistory("companero", saved + "user:YWJj\\n"), "reject unpaired turn");
         check(restored.rememberedPairs("companero") == 6, "corrupt memory must not erase valid history");
         check(restored.respond("companero", "¿Recordás la charla?", none).ready, "restore model works");
         check(!restored.importHistory("companero", saved.replace("assistant:", "admin:")), "reject unsupported role");
