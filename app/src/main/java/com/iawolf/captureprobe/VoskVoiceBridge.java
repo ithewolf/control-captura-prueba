@@ -184,21 +184,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
   tts=new TextToSpeech(context,code->main.post(()->{
    if(!running||tts==null)return;
    if(code!=TextToSpeech.SUCCESS){CaptureService.ttsStatus="TTS no disponible";return;}
-   Set<Voice> voices=tts.getVoices();Voice best=null;int rank=-1;
-   String saved=context.getSharedPreferences("control_voice_settings",Context.MODE_PRIVATE).getString("voice_name","");
-   if(voices!=null)for(Voice v:voices){
-     if(v.isNetworkConnectionRequired())continue;
-     Locale loc=v.getLocale();if(loc==null||!"es".equalsIgnoreCase(loc.getLanguage()))continue;
-     int score="AR".equals(loc.getCountry())?30:"MX".equals(loc.getCountry())?20:"US".equals(loc.getCountry())?10:0;
-     if(v.getName().equals(saved))score=1000;
-     if(score>rank){rank=score;best=v;}
-   }
-   if(best==null||tts.setVoice(best)!=TextToSpeech.SUCCESS){
-    CaptureService.ttsStatus="sin voz local española instalada";return;
-   }
-   ttsReady=true;
-   CaptureService.ttsVoice=best.getName()+" ("+best.getLocale().toLanguageTag()+")";
-   CaptureService.ttsStatus="TTS local preparado";
+   if(!applyPreferredVoice())return;
    tts.setSpeechRate(1.06f);tts.setPitch(0.88f);
    tts.setAudioAttributes(new AudioAttributes.Builder()
      .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
@@ -209,6 +195,44 @@ public final class VoskVoiceBridge implements RecognitionListener {
     @Override public void onError(String id){main.post(()->finishSpeech(false));}
    });
   }));
+ }
+
+ /** Applies the same saved device voice to actual session responses, not only previews. */
+ private boolean applyPreferredVoice(){
+  if(tts==null)return false;
+  Set<Voice> voices=tts.getVoices();Voice best=null;int rank=-1;
+  String saved=context.getSharedPreferences("control_voice_settings",Context.MODE_PRIVATE)
+      .getString("voice_name","");
+  if(voices!=null)for(Voice v:voices){
+   if(v.isNetworkConnectionRequired())continue;
+   Locale loc=v.getLocale();if(loc==null)continue;
+   if(v.getName().equals(saved)){best=v;break;}
+   if(!"es".equalsIgnoreCase(loc.getLanguage()))continue;
+   int score="AR".equalsIgnoreCase(loc.getCountry())?30:
+      "UY".equalsIgnoreCase(loc.getCountry())?25:
+      "MX".equalsIgnoreCase(loc.getCountry())?20:10;
+   if(score>rank){rank=score;best=v;}
+  }
+  if(best==null||tts.setVoice(best)!=TextToSpeech.SUCCESS){
+   ttsReady=false;
+   CaptureService.ttsStatus="sin voz local compatible disponible";
+   return false;
+  }
+  ttsReady=true;
+  CaptureService.ttsVoice=best.getName()+" ("+best.getLocale().toLanguageTag()+")";
+  CaptureService.ttsStatus="TTS local preparado";
+  return true;
+ }
+ public void refreshSelectedVoice(){
+  main.post(()->{
+   if(!running||tts==null)return;
+   if(speaking){
+    CaptureService.ttsStatus="Cambio de voz pendiente hasta que termine de hablar";
+    main.postDelayed(this::refreshSelectedVoice,1000L);
+    return;
+   }
+   applyPreferredVoice();
+  });
  }
 
  /** Diagnostic through the same TTS and microphone pause/restart path as live replies. */
