@@ -94,6 +94,9 @@ public class MainActivity extends Activity {
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
   TextView title=new TextView(this);title.setText("CONTROL: APK experimental de diagnóstico. Piper Ald es voz masculina PROVISIONAL, no la voz original de CONTROL. Para probar la voz Piper, seleccioná Piper, iniciá Pantalla + micrófono y pulsá Diagnóstico: hacer responder al CONTROL de la sesión. Para probar escucha, decí CONTROL, hola. La app todavía no interpreta el juego.");content.addView(title);
+  // Lab6 stays text-only and separate from the active Vosk / MediaProjection session.
+  Button lab6=new Button(this);lab6.setText("LAB 6: probar IA LOCAL por texto (modelo LiteRT)");
+  content.addView(lab6);lab6.setOnClickListener(v->startActivity(new Intent(this,Lab6TextActivity.class)));
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
   content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
