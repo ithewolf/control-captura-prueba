@@ -34,6 +34,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
  private Model model;
  private TextToSpeech tts;
  private boolean running=false, speaking=false, prepared=false, ttsReady=false;
+ private boolean unexplainedIntentNotified=false;
  private long lastTtsFinished=-1L, listenFrameBaseline=0L;
  private final Runnable recycle=()->{
   if(!running) return;
@@ -49,7 +50,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
  public void start(){
   main.post(()->{
    if(running)return;
-   running=true;
+   running=true;unexplainedIntentNotified=false;
    CaptureService.audioStatus="cargando modelo español Vosk sin conexión";
    initTts();
    try {
@@ -176,7 +177,14 @@ public final class VoskVoiceBridge implements RecognitionListener {
    String reply=(wake||freeAccept)?
      LocalIntent.reply(heard,mode,visual.fresh,visual.dark,CaptureService.active):null;
    if(reply!=null){CaptureService.lastReply=reply;say(reply);}
-   else CaptureService.wakeStatus="Texto transcrito, pero no pasó el filtro de activación";
+   else if(wake||freeAccept){
+    CaptureService.wakeStatus="Frase entendida como texto; intención fuera del intérprete básico";
+    CaptureService.lastReply="Sin respuesta conversacional: falta integrar modelo local";
+    if(!unexplainedIntentNotified){
+     unexplainedIntentNotified=true;
+     say("Te escucho, Wolf, pero todavía no puedo conversar libremente. Estoy usando respuestas básicas mientras preparamos mi cerebro local.");
+    }
+   } else CaptureService.wakeStatus="Texto transcrito, pero no pasó el filtro de activación";
   });
  }
 
