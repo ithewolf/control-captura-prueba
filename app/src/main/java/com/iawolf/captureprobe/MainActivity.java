@@ -67,7 +67,9 @@ public class MainActivity extends Activity {
     " · evento "+snap.getString("lastEvent","sin eventos")+
     " · cambios "+snap.getLong("changes",0)+
     " · estado "+snap.getString("status","sin registro")+
-    " · error "+snap.getString("error","")+\n    " · simultáneos "+(snap.getBoolean("simultaneousAvObserved",false)?"sí":"no")+\n    " · Piper "+snap.getString("piperStatus","sin probar"));
+    " · error "+snap.getString("error","")+
+    " · simultáneos "+(snap.getBoolean("simultaneousAvObserved",false)?"sí":"no")+
+    " · Piper "+snap.getString("piperStatus","sin probar"));
   // The historical thumbnails are only refreshed when a NEW preview arrives.
   // Never create ten new ImageViews every second while Wild Rift is running.
   Bitmap bitmap=CaptureService.previewFrame;
