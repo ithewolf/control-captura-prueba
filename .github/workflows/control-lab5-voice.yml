@@ -32,9 +32,21 @@ jobs:
       - name: Validate five generated WAV files using synthetic audio only
         run: |
           mkdir -p build/lab5-fixture/generated
+          # Generate 5 DIFFERENT synthetic tones to test uniqueness;
+          # these are NOT voice clones or words.
           for i in 01 02 03 04 05; do
-            cp build/lab5-fixture/synthetic.wav build/lab5-fixture/generated/CONTROL-voz-prueba-$i.wav
+            hz=$((180 + 13 * 10#$i))
+            ffmpeg -hide_banner -loglevel error -f lavfi -i "sine=frequency=${hz}:sample_rate=24000:duration=5" -ac 1 build/lab5-fixture/generated/CONTROL-voz-prueba-$i.wav
           done
+          # A copied file must fail the identity-independent uniqueness gate.
+          mkdir -p build/lab5-fixture/duplicates
+          for i in 01 02 03 04 05; do
+            cp build/lab5-fixture/synthetic.wav build/lab5-fixture/duplicates/CONTROL-voz-prueba-$i.wav
+          done
+          if python tools/lab5_validate_voice_trials.py --samples build/lab5-fixture/duplicates; then
+            echo "ERROR: duplicated audio unexpectedly passed"
+            exit 1
+          fi
           python tools/lab5_validate_voice_trials.py --samples build/lab5-fixture/generated
           python -c 'import json; r=json.load(open("build/lab5-fixture/generated/acceptance/technical-report.json")); assert len(r["files"])==5 and not r["voice_approved"] and not r["ready_for_android"]'
       - uses: actions/upload-artifact@v4
