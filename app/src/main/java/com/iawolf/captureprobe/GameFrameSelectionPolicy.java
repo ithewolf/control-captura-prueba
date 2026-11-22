@@ -15,7 +15,7 @@ public final class GameFrameSelectionPolicy {
  public synchronized int count(){return count;}
  public synchronized boolean finished(){return count>=MAX_SAMPLES;}
  public synchronized boolean shouldCapture(long now,int width,int height){
-  if(now<0||width<height||width<=0||height<=0||finished())return false;
+  if(now<0||width<=height||width<=0||height<=0||finished())return false;
   if(lastSampleAt>=0 && (now<lastSampleAt||now-lastSampleAt<MIN_GAP_MS))return false;
   lastSampleAt=now;
   count++;
