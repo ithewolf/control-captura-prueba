@@ -2,7 +2,16 @@ plugins { id 'com.android.application' }
 android {
  namespace 'com.iawolf.captureprobe'
  compileSdk 35
- defaultConfig { applicationId 'com.iawolf.captureprobe'; minSdk 29; targetSdk 35; versionCode 18; versionName '0.18' }
+ defaultConfig {
+  applicationId 'com.iawolf.captureprobe'
+  minSdk 29
+  targetSdk 35
+  versionCode 18
+  versionName '0.18'
+  // Avoid bundling emulator desktop ABI binaries in an APK for real ARM phones.
+  // Keep ARM 32-bit support for lower-end Android devices.
+  ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' }
+ }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
 }
 
