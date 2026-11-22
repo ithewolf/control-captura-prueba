@@ -191,7 +191,8 @@ public class MainActivity extends Activity {
   if(voice==null || voice.getVoices()==null)return result;
   for(android.speech.tts.Voice item:voice.getVoices()){
    Locale loc=item.getLocale();
-   if(loc==null || item.isNetworkConnectionRequired())continue;
+   if(loc==null || item.isNetworkConnectionRequired() ||
+      !"es".equalsIgnoreCase(loc.getLanguage()))continue;
    result.add(item);
   }
   java.util.Collections.sort(result,(a,b)->{
@@ -203,7 +204,7 @@ public class MainActivity extends Activity {
  }
  private int rankLocale(Locale l){
   String country=l.getCountry();
-  return "AR".equalsIgnoreCase(country)?3:"MX".equalsIgnoreCase(country)?2:
+  return "AR".equalsIgnoreCase(country)?4:"UY".equalsIgnoreCase(country)?3:"MX".equalsIgnoreCase(country)?2:
     "US".equalsIgnoreCase(country)?1:0;
  }
  private boolean selectPreferredVoice(){
@@ -228,11 +229,11 @@ public class MainActivity extends Activity {
   String[] names=new String[options.size()];
   for(int i=0;i<options.size();i++){
    android.speech.tts.Voice v=options.get(i);
-   names[i]=v.getLocale().toLanguageTag()+" · "+v.getName()+
+   names[i]=("AR".equalsIgnoreCase(v.getLocale().getCountry())?"🇦🇷 Argentina · ":"")+v.getLocale().toLanguageTag()+" · "+v.getName()+
       (v.isNetworkConnectionRequired()?" (requiere internet)":" (sin conexión)");
   }
   new android.app.AlertDialog.Builder(this)
-   .setTitle("Voces instaladas en tu dispositivo")
+.setTitle("Voces locales en español (Argentina primero)")
    .setSingleChoiceItems(names,-1,(dialog,which)->{
     android.speech.tts.Voice candidate=options.get(which);
     if(voice.setVoice(candidate)==TextToSpeech.SUCCESS){
