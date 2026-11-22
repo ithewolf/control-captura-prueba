@@ -193,6 +193,20 @@ public final class VoskVoiceBridge implements RecognitionListener {
   }));
  }
 
+ /** Diagnostic through the same TTS and microphone pause/restart path as live replies. */
+ public void diagnosticReply(){
+  main.post(()->{
+   if(!running){CaptureService.wakeStatus="Diagnóstico: sesión de voz inactiva";return;}
+   String mode=context.getSharedPreferences("control_mode",Context.MODE_PRIVATE)
+       .getString("mode","coach");
+   String reply="companero".equals(mode)
+       ?"Wolf, estoy en modo compañero de diagnóstico. Te escucho cuando Vosk reconoce CONTROL."
+       :"Wolf, estoy en modo coach de diagnóstico. La voz funciona, pero todavía no doy consejos tácticos.";
+   CaptureService.lastReply=reply;
+   CaptureService.wakeStatus="Prueba manual de voz; sin reconocimiento de micrófono";
+   say(reply);
+  });
+ }
  private void say(String words){
   if(!ttsReady||tts==null){CaptureService.ttsStatus="respuesta disponible solo en texto";return;}
   speaking=true;
