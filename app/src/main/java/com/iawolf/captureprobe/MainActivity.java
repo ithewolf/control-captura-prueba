@@ -1,6 +1,7 @@
 package com.iawolf.captureprobe;
 import android.Manifest;
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Intent;
 import android.provider.Settings;
 import android.net.Uri;
