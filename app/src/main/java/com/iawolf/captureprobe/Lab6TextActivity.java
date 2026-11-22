@@ -90,7 +90,8 @@ public final class Lab6TextActivity extends Activity {
    if(model!=null){model.close();model=null;brain=null;}
    if(dest.exists()&&!dest.delete())throw new IllegalStateException("No pude reemplazar el modelo");
    if(!tmp.renameTo(dest))throw new IllegalStateException("No se pudo guardar el modelo");
-   state("Importado ("+(length/(1024*1024))+" MB). Inicializando LiteRT-LM local en CPU...");
+   String fingerprint=ModelFingerprint.sha256(dest);
+   state("Importado ("+(length/(1024*1024))+" MB), SHA-256: "+fingerprint.substring(0,16)+"... Inicializando LiteRT-LM local en CPU...");
    model=new LiteRtTextModel(dest,getCacheDir());
    brain=new ConversationCore(model);
    state("Modelo LOCAL cargado. Escribi una pregunta que no este programada.");
