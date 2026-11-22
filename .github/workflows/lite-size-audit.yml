@@ -7,6 +7,10 @@ on:
       - 'lite_audit/**'
       - '.github/workflows/lite-size-audit.yml'
   workflow_dispatch:
+# Only one active experimental Lite build per branch: prevent Maven rate limits.
+concurrency:
+  group: control-lite-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
