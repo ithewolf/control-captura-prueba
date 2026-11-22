@@ -110,7 +110,11 @@ public final class ConversationCore {
         ArrayDeque<Message> restored = new ArrayDeque<>();
         try {
             for (int i = 1; i < lines.length; i++) {
-                if (lines[i].isEmpty()) continue;
+                if (lines[i].isEmpty()) {
+                    // Only the terminal newline is allowed; blank turns are corruption.
+                    if (i == lines.length - 1) continue;
+                    return false;
+                }
                 String expected = restored.size() % 2 == 0 ? "user:" : "assistant:";
                 if (!lines[i].startsWith(expected)) return false;
                 byte[] bytes = java.util.Base64.getDecoder().decode(lines[i].substring(expected.length()));
