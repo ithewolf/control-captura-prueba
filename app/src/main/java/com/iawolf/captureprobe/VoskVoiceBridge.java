@@ -149,6 +149,8 @@ public final class VoskVoiceBridge implements RecognitionListener {
    if(heard.isEmpty())return;
    CaptureService.recognizedPhrases++;
    CaptureService.lastHeard=heard;
+   boolean wake=WakeGate.isActivated(heard);
+   CaptureService.wakeStatus=wake?"Comando activado":"Texto recibido, pero sin palabra CONTROL reconocible";
    long during=Math.max(0L,CaptureService.received-listenFrameBaseline);
    CaptureService.framesDuringLastListen=during;
    if(during>0)CaptureService.simultaneousAvObserved=true;
@@ -156,6 +158,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
    String mode=context.getSharedPreferences("control_mode",Context.MODE_PRIVATE).getString("mode","coach");
    String reply=AvContext.respond(heard,visual,mode);
    if(reply!=null){CaptureService.lastReply=reply;say(reply);}
+   else CaptureService.wakeStatus="Texto recibido; sin comando válido";
   });
  }
 
