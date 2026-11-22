@@ -10,6 +10,7 @@ on:
       - 'tools/stage_piper_android_voice.py'
       - 'tools/test_next_stage_piper_contract.py'
       - 'tests/com/iawolf/captureprobe/PiperPlaybackBudgetSmokeTest.java'
+      - 'tests/com/iawolf/captureprobe/PiperAudioBufferSmokeTest.java'
   workflow_dispatch:
 permissions:
   contents: read
@@ -53,6 +54,11 @@ jobs:
           mkdir -p build/lab4-playback-tests
           javac -d build/lab4-playback-tests app/src/main/java/com/iawolf/captureprobe/PiperPlaybackBudget.java tests/com/iawolf/captureprobe/PiperPlaybackBudgetSmokeTest.java
           java -cp build/lab4-playback-tests com.iawolf.captureprobe.PiperPlaybackBudgetSmokeTest
+      - name: Regression test AudioTrack PCM16 buffer sizing (Samsung failure)
+        run: |
+          mkdir -p build/lab4-audio-buffer
+          javac -d build/lab4-audio-buffer app/src/main/java/com/iawolf/captureprobe/PiperAudioBuffer.java tests/com/iawolf/captureprobe/PiperAudioBufferSmokeTest.java
+          java -cp build/lab4-audio-buffer com.iawolf.captureprobe.PiperAudioBufferSmokeTest
       - name: Build isolated Android APK with native runtime and voice assets (device playback unverified)
         shell: bash
         run: gradle :app:assembleDebug -PpiperProbe --no-daemon --stacktrace
