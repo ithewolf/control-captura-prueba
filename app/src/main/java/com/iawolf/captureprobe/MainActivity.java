@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
    "\nVoz TTS: "+CaptureService.ttsStatus+" · Motor: "+CaptureService.ttsVoice+
    "\nTTS iniciados/finalizados/fallidos: "+CaptureService.ttsStarted+"/"+CaptureService.ttsCompleted+"/"+CaptureService.ttsFailed+
+   "\nPermiso de micrófono: "+(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED?"concedido":"pendiente/denegado")+
    "\nErrores de escucha: "+CaptureService.speechErrors+
    "\nÚltimo texto escuchado: "+CaptureService.lastHeard+
    "\nRespuesta local: "+CaptureService.lastReply+
@@ -107,7 +108,23 @@ public class MainActivity extends Activity {
   }));
   Button chooseMode=new Button(this);chooseMode.setText("Elegir modo de CONTROL");content.addView(chooseMode);
   chooseMode.setOnClickListener(v->showModeChooser());
+  Button micPermission=new Button(this);
+  micPermission.setText("Comprobar / solicitar permiso del micrófono");
+  content.addView(micPermission);
+  micPermission.setOnClickListener(v->{
+   if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED){
+    new android.app.AlertDialog.Builder(this).setMessage("Permiso de micrófono concedido. Esto NO demuestra que Vosk pueda escuchar: revisá el estado durante una sesión.").setPositiveButton("Entendido",null).show();
+   }else requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},79);
+  });
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
+  Button captureOnly=new Button(this);
+  captureOnly.setText("Diagnóstico: capturar solo pantalla (sin micrófono)");
+  content.addView(captureOnly);
+  captureOnly.setOnClickListener(v->new android.app.AlertDialog.Builder(this)
+   .setTitle("Prueba de captura independiente")
+   .setMessage("Esta prueba solicitará únicamente autorización de pantalla. No iniciará Vosk si el micrófono no tiene permiso; si ya tiene permiso, la app podría iniciar también la escucha. Usá el estado de sesión para distinguirlo.")
+   .setPositiveButton("Continuar",(d,w)->beginProjectionConsent())
+   .setNegativeButton("Cancelar",null).show());
   Button stop=new Button(this);stop.setText("Detener");content.addView(stop);
   start.setOnClickListener(v->new android.app.AlertDialog.Builder(this)
    .setTitle("Uso de micrófono")
@@ -226,8 +243,17 @@ public class MainActivity extends Activity {
  }
  private void requestCapture(){
   if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED){
-   requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},78);return;
+   new android.app.AlertDialog.Builder(this)
+    .setTitle("Permiso de micrófono pendiente")
+    .setMessage("Para probar imagen y voz, permití el micrófono. Si Android no lo concede, podés probar la captura de pantalla por separado.")
+    .setPositiveButton("Solicitar micrófono",(d,w)->requestPermissions(new String[]{Manifest.permission.RECORD_AUDIO},78))
+    .setNeutralButton("Solo pantalla",(d,w)->beginProjectionConsent())
+    .setNegativeButton("Cancelar",null).show();
+   return;
   }
+  beginProjectionConsent();
+ }
+ private void beginProjectionConsent(){
   if(CaptureService.active){Toast.makeText(this,"Detené la sesión anterior",Toast.LENGTH_SHORT).show();return;}
   MediaProjectionManager m=(MediaProjectionManager)getSystemService(MEDIA_PROJECTION_SERVICE);
   Intent request=android.os.Build.VERSION.SDK_INT>=34
@@ -239,7 +265,13 @@ public class MainActivity extends Activity {
   super.onRequestPermissionsResult(code,permissions,results);
   if(code==78){
    if(results.length>0 && results[0]==PackageManager.PERMISSION_GRANTED)requestCapture();
-   else Toast.makeText(this,"Sin micrófono no se podrá probar la conversación.",Toast.LENGTH_LONG).show();
+   else new android.app.AlertDialog.Builder(this).setTitle("Micrófono no autorizado")
+    .setMessage("Podemos comprobar la captura igualmente. La escucha seguirá sin funcionar hasta conceder el permiso.")
+    .setPositiveButton("Probar pantalla",(d,w)->beginProjectionConsent())
+    .setNegativeButton("Cancelar",null).show();
+  }else if(code==79){
+   boolean granted=results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED;
+   Toast.makeText(this,granted?"Permiso de micrófono concedido":"Micrófono denegado; captura independiente disponible",Toast.LENGTH_LONG).show();
   }
  }
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);
