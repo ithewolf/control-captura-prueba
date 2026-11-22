@@ -19,6 +19,11 @@ dependencies {
  // JNA is needed by Vosk; @aar artifact-only notation does not guarantee transitive resolution.
  implementation 'net.java.dev.jna:jna:5.18.1@aar'
  implementation 'com.alphacephei:vosk-android:0.3.75@aar'
+ // LAB4 ONLY: Gradle -PpiperProbe bundles the audited sherpa-onnx AAR.
+ // Never enable on the production Lite build without device validation.
+ if (project.hasProperty('piperProbe')) {
+  implementation files('libs/sherpa-onnx-1.12.40.aar')
+ }
 }
 
 /*
