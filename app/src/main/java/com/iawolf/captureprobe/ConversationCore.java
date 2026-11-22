@@ -61,13 +61,21 @@ public final class ConversationCore {
     public ConversationCore(LocalTextModel model) { this.model = model; }
 
     public synchronized Answer respond(String mode, String heard, VisionStatus vision) {
+        return respond(mode, heard, vision, "");
+    }
+    public synchronized Answer respond(String mode, String heard, VisionStatus vision, String manualHistory) {
         if (model == null) return Answer.unavailable("Modelo conversacional local no instalado");
         String input = clean(heard, MAX_INPUT_CHARS);
         if (input.isEmpty()) return Answer.unavailable("No se recibio una pregunta transcrita");
         String m = normalizeMode(mode);
         ArrayDeque<Message> turns = history.computeIfAbsent(m, key -> new ArrayDeque<>());
         ArrayList<Message> prompt = new ArrayList<>();
-        prompt.add(new Message("system", systemPrompt(m, vision)));
+        String profileContext = "coach".equals(m) && manualHistory != null
+                ? clean(manualHistory, 700) : "";
+        String instructions=systemPrompt(m, vision);
+        if (!profileContext.isEmpty()) instructions += " Datos de perfil proporcionados manualmente, NO observaciones visuales: "
+                + profileContext + ". No supongas resultados de partidas ni ubicaciones de enemigos. ";
+        prompt.add(new Message("system", instructions));
         int skip = Math.max(0, turns.size() - CONTEXT_PAIRS * 2);
         int index = 0;
         for (Message turn : turns) if (index++ >= skip) prompt.add(turn);
