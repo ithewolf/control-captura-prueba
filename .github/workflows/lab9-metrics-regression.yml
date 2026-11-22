@@ -1,0 +1,25 @@
+name: CONTROL Lab9 metrics regression (no APK)
+on:
+  push:
+    branches: [fix-lab9-metrics-20261122]
+    paths:
+      - 'tools/lab9_video_benchmark.py'
+      - 'tools/test_lab9_metrics.py'
+      - '.github/workflows/lab9-metrics-regression.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  metric-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate scripts syntax
+        run: python3 -m py_compile tools/lab9_video_benchmark.py tools/test_lab9_metrics.py
+      - name: Seven offline regression scenarios
+        run: python3 -m unittest discover -s tools -p 'test_lab9_metrics.py' -v
+      - name: Empty private video inventory must report NOT_MEASURED
+        run: |
+          python3 tools/lab9_video_benchmark.py --output /tmp/lab9-empty
+          python3 -c 'import json; r=json.load(open("/tmp/lab9-empty/evaluation.json")); assert r["recognition_evaluation"]["status"] == "NOT_MEASURED"'
