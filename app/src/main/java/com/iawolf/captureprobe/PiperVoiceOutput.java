@@ -51,7 +51,8 @@ final class PiperVoiceOutput {
      throw new IllegalStateException("Piper devolvió audio vacío");
     int min=AudioTrack.getMinBufferSize(rate,AudioFormat.CHANNEL_OUT_MONO,AudioFormat.ENCODING_PCM_16BIT);
     if(min<=0)throw new IllegalStateException("Formato de audio no soportado");
-    int buffer=Math.max(min,rate/2);
+    // AudioTrack expects BYTES, not PCM sample count. PCM16 mono = 2 bytes/frame.
+    int buffer=PiperAudioBuffer.bytes(rate,min);
     AudioTrack track=new AudioTrack.Builder()
       .setAudioAttributes(new AudioAttributes.Builder()
          .setUsage(AudioAttributes.USAGE_ASSISTANCE_NAVIGATION_GUIDANCE)
