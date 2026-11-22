@@ -45,6 +45,10 @@ def analyze(apk, max_mib=200):
     if training:problems.append("RESEARCH_FILES_PACKAGED")
     # Voice presence check is intentionally an inventory, not proof Vosk runs.
     if not voice:problems.append("OFFLINE_SPANISH_MODEL_ABSENT")
+    if not abis:problems.append("NATIVE_LIBRARIES_ABSENT")
+    if abis and "arm64-v8a" not in abis:problems.append("ARM64_NOT_PRESENT")
+    if abis and "armeabi-v7a" not in abis:problems.append("ARM32_NOT_PRESENT")
+    if any(a.startswith("x86") for a in abis):problems.append("EMULATOR_ABI_INCLUDED")
     return {"status":"PASS" if not problems else "FAIL",
             "apk_mib":round(size_mib,2),"budget_mib":max_mib,
             "sizes_compressed_mib":{k:round(v/1048576,2) for k,v in counts.items()},
