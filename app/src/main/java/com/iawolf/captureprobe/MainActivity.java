@@ -255,7 +255,9 @@ public class MainActivity extends Activity {
        startService(new Intent(this,CaptureService.class).setAction("CHANGE_VOICE"));
      voiceReady=true;voiceButton.setEnabled(true);
      voiceButton.setText("Probar altavoz / voz elegida");
-     voice.speak("Wolf, soy Control. Esta es mi voz de prueba.",TextToSpeech.QUEUE_FLUSH,null,"voice_preview");
+     if(CaptureService.active){
+      Toast.makeText(this,"Voz elegida para CONTROL. Escuchala cuando termines la sesión, para evitar que Vosk capte la muestra.",Toast.LENGTH_LONG).show();
+     }else voice.speak("Wolf, soy Control. Esta es mi voz de prueba.",TextToSpeech.QUEUE_FLUSH,null,"voice_preview");
     }else Toast.makeText(this,"No se pudo seleccionar esta voz",Toast.LENGTH_SHORT).show();
     dialog.dismiss();
    })
@@ -263,6 +265,10 @@ public class MainActivity extends Activity {
  }
  private void speakTest(){
   if(!voiceReady||voice==null){Toast.makeText(this,"Voz aún no disponible",Toast.LENGTH_SHORT).show();return;}
+  if(CaptureService.active){
+   Toast.makeText(this,"Terminá primero la sesión de micrófono para probar la voz sin eco.",Toast.LENGTH_LONG).show();
+   return;
+  }
   voice.speak("Wolf, soy CONTROL. Mi voz está funcionando. La captura sigue siendo un sistema independiente.",TextToSpeech.QUEUE_FLUSH,null,"control_test");
  }
  @Override protected void onDestroy(){
