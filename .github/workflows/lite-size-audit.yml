@@ -24,6 +24,11 @@ jobs:
           gradle-version: '8.9'
       - name: Test APK analyzer offline
         run: python -m unittest discover -s lite_audit -p 'test_*.py' -v
+      - name: Protect offline voice dependencies
+        run: |
+          python -c "import sys; sys.path.insert(0,'lite_audit'); from preflight_voice import inspect_gradle; from pprint import pprint; r=inspect_gradle('app/build.gradle'); pprint(r); sys.exit(0 if r['status']=='PASS' else 2)"
+      - name: Inspect Gradle dependencies
+        run: gradle --no-daemon :app:dependencies --configuration debugRuntimeClasspath
       - name: Confirm Android SDK
         run: |
           test -f "$ANDROID_HOME/platforms/android-35/android.jar"
