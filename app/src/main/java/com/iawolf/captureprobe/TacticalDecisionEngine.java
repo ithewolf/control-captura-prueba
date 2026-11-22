@@ -35,26 +35,33 @@ public final class TacticalDecisionEngine {
         }
     }
     public static Decision evaluate(State s) {
-        if(s==null || !s.reliable || !s.fresh)
-            return unknown("Sin observaciones visuales fiables y recientes.");
-        if(s.healthPercent < 0 || s.healthPercent > 100)
-            return unknown("Vida propia desconocida o invalida.");
-        if(s.nearbyEnemies < 0 || s.nearbyAllies < 0)
-            return unknown("No hay recuento confirmado de aliados y enemigos cercanos.");
-        if(s.healthPercent <= 30 && s.nearbyEnemies > 0)
-            return new Decision(Action.RETREAT,"Vida baja y amenaza enemiga observada.",true);
-        if(s.healthPercent <= 25)
-            return new Decision(Action.RECOVER,"Vida critica; evitar exponerse.",true);
-        if(s.nearbyEnemies > s.nearbyAllies + 1)
-            return new Decision(Action.RETREAT,"Desventaja numerica observada.",true);
-        if(s.enemyChampionConfirmed && s.nearbyEnemies >= 1)
+        if (s == null || !s.reliable || !s.fresh)
+            return unknown("No hay observaciones recientes y verificadas.");
+        if (s.nearbyEnemies < UNKNOWN || s.nearbyAllies < UNKNOWN)
+            return unknown("Cantidad de personajes invalida.");
+        if (s.healthPercent < UNKNOWN || s.healthPercent > 100)
+            return unknown("Vida propia invalida.");
+        // An identified enemy does NOT require enemy HP/MP, or even player HP.
+        // Do not equate unknown enemy count with zero enemies.
+        if (s.enemyChampionConfirmed && s.nearbyEnemies == 0)
+            return unknown("Contradiccion entre identidad enemiga y recuento.");
+        if (s.nearbyEnemies >= 1 && s.enemyChampionConfirmed) {
+            if (s.healthPercent != UNKNOWN && s.healthPercent <= 30)
+                return new Decision(Action.RETREAT, "Enemigo identificado y vida propia baja.", true);
+            if (s.nearbyAllies != UNKNOWN && s.nearbyEnemies > s.nearbyAllies + 1)
+                return new Decision(Action.RETREAT, "Enemigo identificado y desventaja numerica.", true);
             return new Decision(Action.IDENTIFY_ENEMY,
-                "Campeon enemigo detectado; no se necesita estimar su HP ni mana. "
-                + "Evaluar posicion y riesgos antes de recomendar atacar.",true);
-        if(s.laneWaveVisible && s.healthPercent >= 50 && s.nearbyEnemies == 0)
+                "Campeon enemigo visible e identificado: describir ubicacion verificada sin inventar HP ni mana.",
+                true);
+        }
+        // Unknown own HP may not block reporting an enemy, but does block health advice.
+        if (s.healthPercent != UNKNOWN && s.healthPercent <= 25)
+            return new Decision(Action.RECOVER, "Vida propia critica.", true);
+        if (s.healthPercent != UNKNOWN && s.healthPercent >= 50
+                && s.nearbyEnemies == 0 && s.laneWaveVisible)
             return new Decision(Action.FARM_SAFELY,
-                "Oleada visible y ningun enemigo cercano detectado; ausencia visible no prueba seguridad total.",true);
-        return unknown("Datos insuficientes para seleccionar una accion tactica.");
+                "Oleada observada y sin enemigo detectado en el area examinada; no significa mapa seguro.", true);
+        return unknown("No hay datos suficientes para un consejo tactico.");
     }
     private static Decision unknown(String why) {
         return new Decision(Action.INSUFFICIENT_EVIDENCE,why,false);
