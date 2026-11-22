@@ -67,17 +67,19 @@ public class MainActivity extends Activity {
     " · evento "+snap.getString("lastEvent","sin eventos")+
     " · cambios "+snap.getLong("changes",0)+
     " · estado "+snap.getString("status","sin registro")+
-    " · error "+snap.getString("error",""));
-  Bitmap[] recent=CaptureService.getRecentFrames();
-  historyView.removeAllViews();
-  for(int i=recent.length-1;i>=0;i--){
-   ImageView thumb=new ImageView(MainActivity.this);
-   thumb.setImageBitmap(recent[i]);thumb.setScaleType(ImageView.ScaleType.FIT_CENTER);
-   historyView.addView(thumb,new LinearLayout.LayoutParams((int)(185*getResources().getDisplayMetrics().density),(int)(115*getResources().getDisplayMetrics().density)));
-  }
+    " · error "+snap.getString("error","")+\n    " · simultáneos "+(snap.getBoolean("simultaneousAvObserved",false)?"sí":"no")+\n    " · Piper "+snap.getString("piperStatus","sin probar"));
+  // The historical thumbnails are only refreshed when a NEW preview arrives.
+  // Never create ten new ImageViews every second while Wild Rift is running.
   Bitmap bitmap=CaptureService.previewFrame;
   long timestamp=CaptureService.previewAt;
   if(timestamp!=lastShownAt){
+   Bitmap[] recent=CaptureService.getRecentFrames();
+   historyView.removeAllViews();
+   for(int i=recent.length-1;i>=0;i--){
+    ImageView thumb=new ImageView(MainActivity.this);
+    thumb.setImageBitmap(recent[i]);thumb.setScaleType(ImageView.ScaleType.FIT_CENTER);
+    historyView.addView(thumb,new LinearLayout.LayoutParams((int)(185*getResources().getDisplayMetrics().density),(int)(115*getResources().getDisplayMetrics().density)));
+   }
    preview.setImageBitmap(bitmap);
    lastShownAt=timestamp;
   }
