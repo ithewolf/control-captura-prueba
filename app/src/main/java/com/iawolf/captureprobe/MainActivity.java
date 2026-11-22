@@ -93,7 +93,7 @@ public class MainActivity extends Activity {
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
-  TextView title=new TextView(this);title.setText("CONTROL: compilación experimental pendiente. Voz latinoamericana PROVISIONAL. El botón de voz prueba SOLO el altavoz. Para probar el micrófono iniciá sesión larga y decí CONTROL, hola. El motor predeterminado puede requerir internet. La app aún no interpreta el juego.");content.addView(title);
+  TextView title=new TextView(this);title.setText("CONTROL: APK experimental de diagnóstico. Piper Ald es voz masculina PROVISIONAL, no la voz original de CONTROL. Para probar la voz Piper, seleccioná Piper, iniciá Pantalla + micrófono y pulsá Diagnóstico: hacer responder al CONTROL de la sesión. Para probar escucha, decí CONTROL, hola. La app todavía no interpreta el juego.");content.addView(title);
   preview=new ImageView(this);preview.setScaleType(ImageView.ScaleType.FIT_CENTER);
   content.addView(preview,new LinearLayout.LayoutParams(-1,(int)(220*getResources().getDisplayMetrics().density)));
   TextView historyLabel=new TextView(this);historyLabel.setText("Últimos 10 fotogramas (deslizá para ver los anteriores)");content.addView(historyLabel);
@@ -217,7 +217,7 @@ public class MainActivity extends Activity {
   if(voice==null || voice.getVoices()==null)return result;
   for(android.speech.tts.Voice item:voice.getVoices()){
    Locale loc=item.getLocale();
-   if(loc==null || item.isNetworkConnectionRequired())continue;
+   if(loc==null || item.isNetworkConnectionRequired() || !"es".equalsIgnoreCase(loc.getLanguage()))continue;
    result.add(item);
   }
   java.util.Collections.sort(result,(a,b)->{
