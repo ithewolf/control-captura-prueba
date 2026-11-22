@@ -30,11 +30,13 @@ public final class Lab6TextActivity extends Activity {
  private LiteRtTextModel model;
  private ConversationCore brain;
  private TextView status,output;
- private EditText input;
- private Button importButton,askButton,forgetButton;
+ private EditText input,championInput,roleInput;
+ private PlayerHistoryDatabase playerHistory;
+ private Button importButton,askButton,forgetButton,saveProfileButton;
 
  @Override public void onCreate(Bundle saved){
   super.onCreate(saved);
+  playerHistory=new PlayerHistoryDatabase(this);
   LinearLayout l=new LinearLayout(this);l.setOrientation(1);l.setPadding(24,24,24,24);
   TextView title=new TextView(this);
   title.setText("LAB 6 - CONTROL IA local\nPrueba solo texto: sin microfono ni captura. Sin respuestas preparadas.");
@@ -43,7 +45,10 @@ public final class Lab6TextActivity extends Activity {
   importButton=new Button(this);importButton.setText("Importar modelo .litertlm");l.addView(importButton);
   input=new EditText(this);input.setHint("Escribile una pregunta nueva a CONTROL");input.setMinLines(2);l.addView(input);
   askButton=new Button(this);askButton.setText("Generar respuesta con IA local");askButton.setEnabled(false);l.addView(askButton);
-  forgetButton=new Button(this);forgetButton.setText("Borrar memoria local de Coach y Compañero");l.addView(forgetButton);
+  championInput=new EditText(this);championInput.setHint("Campeón que usaste (registro manual)");l.addView(championInput);
+  roleInput=new EditText(this);roleInput.setHint("Rol: Baron, Jungla, Mid, ADC o Soporte");l.addView(roleInput);
+  saveProfileButton=new Button(this);saveProfileButton.setText("Guardar campeón y rol para otros días");l.addView(saveProfileButton);
+  forgetButton=new Button(this);forgetButton.setText("Borrar historial de conversación y campeones");l.addView(forgetButton);
   ScrollView s=new ScrollView(this);output=new TextView(this);output.setText("Conversacion de prueba:\n");s.addView(output);
   l.addView(s,new LinearLayout.LayoutParams(-1,0,1f));setContentView(l);
   importButton.setOnClickListener(v->{
@@ -53,10 +58,21 @@ public final class Lab6TextActivity extends Activity {
    startActivityForResult(i,PICK);
   });
   askButton.setOnClickListener(v->ask());
+  saveProfileButton.setOnClickListener(v->{
+    if(!busy.compareAndSet(false,true))return;
+    String champion=championInput.getText().toString();
+    String role=roleInput.getText().toString();
+    worker.execute(()->{
+      boolean ok=playerHistory.recordManual(champion,role,System.currentTimeMillis());
+      state(ok?"Registro guardado en SQLite local: "+champion+" / "+role:"Datos inválidos: revisá campeón y rol.");
+      busy.set(false);refresh();
+    });
+  });
   forgetButton.setOnClickListener(v->{
     if(!busy.compareAndSet(false,true)) return;
     worker.execute(()->{
       if(brain!=null){brain.clear("coach");brain.clear("companero");}
+      playerHistory.clearHistory();
       boolean deleted=getSharedPreferences("control_lab7_local_history",MODE_PRIVATE).edit().clear().commit();
       state(deleted?"Memoria local borrada de ambos modos.":"Error al borrar memoria guardada.");
       busy.set(false);refresh();
@@ -119,7 +135,8 @@ public final class Lab6TextActivity extends Activity {
   worker.execute(()->{
    String mode=getSharedPreferences("control_mode",MODE_PRIVATE).getString("mode","coach");
    long started=android.os.SystemClock.elapsedRealtime();
-   ConversationCore.Answer answer=brain.respond(mode,question,new ConversationCore.VisionStatus(false,false,false));
+   String profile="coach".equals(mode)?playerHistory.recentPrompt(8):"";
+   ConversationCore.Answer answer=brain.respond(mode,question,new ConversationCore.VisionStatus(false,false,false),profile);
    long duration=android.os.SystemClock.elapsedRealtime()-started;
    if(answer.ready) getSharedPreferences("control_lab7_local_history",MODE_PRIVATE)
        .edit().putString(mode,brain.exportHistory(mode)).commit();
@@ -131,11 +148,11 @@ public final class Lab6TextActivity extends Activity {
    busy.set(false);refresh();
   });
  }
- private void state(String text){if(!destroyed)runOnUiThread(()->{status.setText(text);askButton.setEnabled(false);importButton.setEnabled(false);forgetButton.setEnabled(false);});}
- private void refresh(){if(!destroyed)runOnUiThread(()->{askButton.setEnabled(!busy.get()&&brain!=null);importButton.setEnabled(!busy.get());forgetButton.setEnabled(!busy.get());});}
+ private void state(String text){if(!destroyed)runOnUiThread(()->{status.setText(text);askButton.setEnabled(false);importButton.setEnabled(false);forgetButton.setEnabled(false);saveProfileButton.setEnabled(false);});}
+ private void refresh(){if(!destroyed)runOnUiThread(()->{askButton.setEnabled(!busy.get()&&brain!=null);importButton.setEnabled(!busy.get());forgetButton.setEnabled(!busy.get());saveProfileButton.setEnabled(!busy.get());});}
  @Override protected void onDestroy(){
   destroyed=true;
-  worker.execute(()->{if(model!=null)model.close();});worker.shutdown();
+  worker.execute(()->{if(model!=null)model.close();playerHistory.close();});worker.shutdown();
   super.onDestroy();
  }
 }
