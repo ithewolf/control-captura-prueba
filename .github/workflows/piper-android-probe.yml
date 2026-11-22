@@ -6,6 +6,7 @@ on:
       - 'app/build.gradle'
       - '.github/workflows/piper-android-probe.yml'
       - 'tools/piper_android_apk_probe.py'
+      - 'tools/stage_piper_android_voice.py'
   workflow_dispatch:
 permissions:
   contents: read
@@ -33,7 +34,7 @@ jobs:
           curl -fL --retry 3 --retry-all-errors --retry-delay 4 --max-time 240 -o app/libs/sherpa-onnx-1.12.40.aar \
             https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.40/sherpa-onnx-1.12.40.aar
           test "$(stat -c%s app/libs/sherpa-onnx-1.12.40.aar)" -eq 56480361
-      - name: Build isolated Android APK with extra native runtime (model NOT packaged)
+      - name: Build isolated Android APK with native runtime and voice assets (playback NOT wired)
         shell: bash
         run: gradle :app:assembleDebug -PpiperProbe --no-daemon --stacktrace
       - name: Audit packaged Android ABI and APK size
