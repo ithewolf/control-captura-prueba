@@ -1,14 +1,5 @@
 name: CONTROL Lab7 - model fingerprint APK experiment
 on:
-  push:
-    branches: [lab7-model-diagnostics-20261122]
-    paths:
-      - 'app/**'
-      - 'build.gradle'
-      - 'settings.gradle'
-      - 'tests/**'
-      - 'tools/**'
-      - '.github/workflows/lab6-ia-local.yml'
   workflow_dispatch:
 permissions:
   contents: read
