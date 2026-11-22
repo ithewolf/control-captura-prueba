@@ -24,6 +24,7 @@ public class MainActivity extends Activity {
  private boolean welcomeSpoken=false;
  private boolean openingPermissionCheckDone=false;
  private static final int OPENING_PERMISSIONS=80;
+ private static final int EXPORT_GAME_EVIDENCE=88;
  private boolean projectionCaptureOnly=false;
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
@@ -53,6 +54,7 @@ public class MainActivity extends Activity {
    "\nÚltimo evento: "+CaptureService.lastEvent+
    "\nCambios: "+CaptureService.changes+"\nOscuros: "+CaptureService.darkFrames+
    "\nLecturas visuales experimentales (NO son estado táctico): "+CaptureService.hudZoneTelemetry+
+   "\nMuestras horizontales (solo memoria): "+CaptureService.evidenceCount()+"/3"+
    "\nTamaño: "+CaptureService.width+" x "+CaptureService.height+
    "\nCuadros desde salida: "+(before<0?"sin medición":Math.max(0,CaptureService.frames-before))+
    "\nError: "+CaptureService.error);
@@ -103,6 +105,36 @@ public class MainActivity extends Activity {
   HorizontalScrollView hs=new HorizontalScrollView(this);
   historyView=new LinearLayout(this);historyView.setOrientation(LinearLayout.HORIZONTAL);
   hs.addView(historyView);content.addView(hs);
+  Button collectGame=new Button(this);
+  collectGame.setText("Preparar 3 fotogramas reales del juego");
+  content.addView(collectGame);
+  collectGame.setOnClickListener(v->{
+   if(!CaptureService.active){
+    Toast.makeText(this,"Primero iniciá la captura solo pantalla",Toast.LENGTH_LONG).show();return;
+   }
+   new AlertDialog.Builder(this)
+    .setTitle("Muestras visuales voluntarias")
+    .setMessage("CONTROL conservará en memoria hasta 3 imágenes horizontales, separadas por varios segundos. Volvé a Wild Rift y recorré los menús o el gameplay. No sube ni guarda archivos automáticamente. Pueden verse nombres o mensajes privados; revisá el ZIP antes de compartirlo.")
+    .setPositiveButton("Comenzar", (dialog,which)->{
+     CaptureService.beginEvidenceCollection();
+     Toast.makeText(this,"Recolección activada. Entrá al juego y volvé después.",Toast.LENGTH_LONG).show();
+    })
+    .setNegativeButton("Cancelar",null).show();
+  });
+  Button exportGame=new Button(this);
+  exportGame.setText("Exportar muestras de juego a ZIP (manual)");
+  content.addView(exportGame);
+  exportGame.setOnClickListener(v->{
+   int count=CaptureService.evidenceCount();
+   if(count==0){
+    Toast.makeText(this,"Todavía no hay muestras horizontales. Recolectalas desde Wild Rift.",Toast.LENGTH_LONG).show();return;
+   }
+   Intent save=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+   save.addCategory(Intent.CATEGORY_OPENABLE);
+   save.setType("application/zip");
+   save.putExtra(Intent.EXTRA_TITLE,"control-frames-wildrift.zip");
+   startActivityForResult(save,EXPORT_GAME_EVIDENCE);
+  });
   chooseVoiceButton=new Button(this);chooseVoiceButton.setText("Elegir voz de CONTROL");content.addView(chooseVoiceButton);
   chooseVoiceButton.setOnClickListener(v->showVoiceSourceChooser());
   voiceButton=new Button(this);voiceButton.setText("Probar ALTAVOZ / voz sintetizada (no micrófono)");content.addView(voiceButton);
@@ -346,7 +378,44 @@ public class MainActivity extends Activity {
     i.putExtra("resultCode",result);i.putExtra("projectionData",data);
     i.putExtra("captureOnly",projectionCaptureOnly);
     startForegroundService(i);
+  }else if(request==EXPORT_GAME_EVIDENCE && result==RESULT_OK && data!=null && data.getData()!=null){
+   exportVisualEvidence(data.getData());
   }
+ }
+ private void exportVisualEvidence(Uri destination){
+  final Bitmap[] samples=CaptureService.evidenceFrames();
+  final long[] dates=CaptureService.evidenceTimestamps();
+  if(samples.length==0){Toast.makeText(this,"No hay muestras para exportar",Toast.LENGTH_LONG).show();return;}
+  new Thread(()->{
+   try(java.io.OutputStream stream=getContentResolver().openOutputStream(destination)){
+    if(stream==null)throw new java.io.IOException("No se pudo abrir destino");
+    try(java.util.zip.ZipOutputStream zip=new java.util.zip.ZipOutputStream(stream)){
+     zip.putNextEntry(new java.util.zip.ZipEntry("LEEME.txt"));
+     String note="CONTROL Lab6 — evidencia visual voluntaria. NO se identificaron campeones automáticamente.\\n"+
+       "Muestras horizontales: "+samples.length+"\\n"+
+       "Los cuadros pueden contener nombres de jugadores u otros datos privados.\\n"+
+       "No se han enviado a ningún servidor desde CONTROL.\\n";
+     zip.write(note.getBytes(java.nio.charset.StandardCharsets.UTF_8));zip.closeEntry();
+     for(int i=0;i<samples.length;i++){
+      if(samples[i]==null)continue;
+      zip.putNextEntry(new java.util.zip.ZipEntry(String.format(java.util.Locale.ROOT,"frame_%02d.png",i+1)));
+      if(!samples[i].compress(Bitmap.CompressFormat.PNG,100,zip))
+       throw new java.io.IOException("No se pudo comprimir el fotograma "+(i+1));
+      zip.closeEntry();
+     }
+     zip.putNextEntry(new java.util.zip.ZipEntry("fechas.txt"));
+     StringBuilder desc=new StringBuilder();
+     for(int i=0;i<samples.length&&i<dates.length;i++)
+      desc.append("frame_").append(String.format(java.util.Locale.ROOT,"%02d",i+1))
+       .append(": ").append(new java.util.Date(dates[i])).append(" / ")
+       .append(samples[i].getWidth()).append("x").append(samples[i].getHeight()).append("\\n");
+     zip.write(desc.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8));zip.closeEntry();
+    }
+    runOnUiThread(()->Toast.makeText(this,"Muestras exportadas. Revisá el ZIP antes de compartirlo.",Toast.LENGTH_LONG).show());
+   }catch(Exception e){
+    runOnUiThread(()->Toast.makeText(this,"No se pudieron exportar las muestras: "+e.getMessage(),Toast.LENGTH_LONG).show());
+   }
+  },"control-zip-evidence").start();
  }
  private void reviewPermissionsOnOpen(){
   // Run once per Activity creation, not after every system dialog or returning
