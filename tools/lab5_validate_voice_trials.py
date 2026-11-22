@@ -32,6 +32,8 @@ for path in expected:
   results.append({"file":path.name,"seconds":round(duration,2),"rate":rate,
                   "channels":channels,"rms":round(rms,4) if rms is not None else None,
                   "sha256":hashlib.sha256(path.read_bytes()).hexdigest()})
+if len({item["sha256"] for item in results})!=len(results):
+ raise RuntimeError("Duplicated WAV content: five distinct generated files required")
 output=pathlib.Path(args.output or str(folder/"acceptance"))
 output.mkdir(parents=True,exist_ok=True)
 report={"status":"Technical WAV integrity PASSED; voice identity NOT assessed",
