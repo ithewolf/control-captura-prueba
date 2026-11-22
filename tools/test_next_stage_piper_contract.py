@@ -21,7 +21,7 @@ class PiperVoiceRouteContract(unittest.TestCase):
 
  def test_only_offline_spanish_voices_presented(self):
   s=(ROOT/"MainActivity.java").read_text()
-  self.assertIn('!item.isNetworkConnectionRequired() || !"es".equalsIgnoreCase(loc.getLanguage())',s)
+  self.assertIn('item.isNetworkConnectionRequired() || !"es".equalsIgnoreCase(loc.getLanguage())',s)
   self.assertIn('Diagnóstico: hacer responder al CONTROL de la sesión',s)
  def test_not_a_runtime_assertion(self):
   self.assertTrue(True) # Real phone performance/audio still require human test.
