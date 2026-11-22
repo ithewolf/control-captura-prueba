@@ -93,7 +93,7 @@ public class MainActivity extends Activity {
   LinearLayout content=new LinearLayout(this);content.setOrientation(1);
   scroll.addView(content);
   label=new TextView(this);content.addView(label);
-  TextView title=new TextView(this);title.setText("CONTROL: APK experimental de diagnóstico. Piper Ald es voz masculina PROVISIONAL, no la voz original de CONTROL. Para probar la voz Piper, seleccioná Piper, iniciá Pantalla + micrófono y pulsá Diagnóstico: hacer responder al CONTROL de la sesión. Para probar escucha, decí CONTROL, hola. La app todavía no interpreta el juego.");content.addView(title);
+  TextView title=new TextView(this);title.setText("CONTROL LAB 6: prueba experimental de IA local por texto. La voz de sesión usa solamente TTS sin conexión del dispositivo. La voz Piper se conserva en Lab 4, pero NO está incluida en esta APK. Para probar inteligencia entrá al botón LAB 6, importá un modelo compatible y conversá por texto. La captura y el micrófono siguen siendo diagnósticos independientes; todavía no interpreta Wild Rift.");content.addView(title);
   // Lab6 stays text-only and separate from the active Vosk / MediaProjection session.
   Button lab6=new Button(this);lab6.setText("LAB 6: probar IA LOCAL por texto (modelo LiteRT)");
   content.addView(lab6);lab6.setOnClickListener(v->startActivity(new Intent(this,Lab6TextActivity.class)));
@@ -193,15 +193,8 @@ public class MainActivity extends Activity {
    .setNegativeButton("Cancelar",null).show();
  }
  private void showVoiceSourceChooser(){
-  String[] sources={"Voces del dispositivo — elegir una instalada",
-                    "Piper Ald — voz masculina de PRUEBA (español mexicano)"};
-  new android.app.AlertDialog.Builder(this)
-   .setTitle("Voz de CONTROL")
-   .setItems(sources,(dialog,which)->{
-    if(which==0)showVoiceChooser();
-    else showPiperVoiceInfo();
-   })
-   .setNegativeButton("Cancelar",null).show();
+  // Lab 6 deliberately hides Piper: Sherpa is not packaged in this branch.
+  showVoiceChooser();
  }
  private void showPiperVoiceInfo(){
   new android.app.AlertDialog.Builder(this)
