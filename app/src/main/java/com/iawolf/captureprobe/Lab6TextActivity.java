@@ -145,11 +145,12 @@ public final class Lab6TextActivity extends Activity {
   String question=input.getText().toString().trim();
   if(question.isEmpty()||!busy.compareAndSet(false,true))return;
   state("Generando con el modelo local, sin red...");
+  final int selectedTacticalScenario=tacticalScenario.getSelectedItemPosition();
   worker.execute(()->{
    String mode=getSharedPreferences("control_mode",MODE_PRIVATE).getString("mode","coach");
    long started=android.os.SystemClock.elapsedRealtime();
    String profile="coach".equals(mode)?playerHistory.recentPrompt(8):"";
-   TacticalDecisionEngine.State scenario=lab8Scenario(tacticalScenario.getSelectedItemPosition());
+   TacticalDecisionEngine.State scenario=lab8Scenario(selectedTacticalScenario);
    if(scenario!=null) profile += " Caso de laboratorio SIMULADO, no detectado en pantalla. ";
    ConversationCore.Answer answer=brain.respond(mode,question,new ConversationCore.VisionStatus(false,false,false),profile,scenario);
    long duration=android.os.SystemClock.elapsedRealtime()-started;
