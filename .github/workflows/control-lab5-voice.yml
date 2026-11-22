@@ -15,6 +15,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
+      - name: Install audio conversion tool
+        run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
       - name: Generate synthetic test voice (not user's reference)
         run: |
           mkdir -p build/lab5-fixture
