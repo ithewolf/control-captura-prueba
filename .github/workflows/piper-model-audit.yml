@@ -1,0 +1,29 @@
+name: Piper Spanish AR model audit (not APK)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'tools/audit_piper_model.py'
+      - '.github/workflows/piper-model-audit.yml'
+permissions:
+  contents: read
+concurrency:
+  group: piper-model-audit
+  cancel-in-progress: true
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Fetch and check Piper Argentine model
+        run: python tools/audit_piper_model.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CONTROL-Piper-voice-audit-ONLY-not-Android-APK
+          path: build/piper-voice-audit/audit.json
+          if-no-files-found: warn
