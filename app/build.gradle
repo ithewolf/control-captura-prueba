@@ -92,3 +92,16 @@ tasks.register('prepareVoskSpanishModel') {
  }
 }
 tasks.named('preBuild').configure { dependsOn tasks.named('prepareVoskSpanishModel') }
+/*
+ * LAB4 isolation: the bundled Piper model is opt-in and is never included in
+ * the stable Lite branch. This does not yet hook the model to Android playback.
+ */
+if (project.hasProperty('piperProbe')) {
+ android.sourceSets.main.assets.srcDir("$buildDir/generated/piperAssets")
+ tasks.register('stagePiperSpanishVoice', Exec) {
+  workingDir rootProject.projectDir
+  commandLine 'python3', 'tools/stage_piper_android_voice.py'
+ }
+ tasks.named('preBuild').configure { dependsOn tasks.named('stagePiperSpanishVoice') }
+}
+
