@@ -30,6 +30,8 @@ jobs:
           mkdir -p /tmp/control-lab6-test
           javac -encoding UTF-8 -d /tmp/control-lab6-test app/src/main/java/com/iawolf/captureprobe/ConversationCore.java tests/ConversationCoreTest.java
           java -cp /tmp/control-lab6-test ConversationCoreTest
+          javac -encoding UTF-8 -d /tmp/control-lab6-test app/src/main/java/com/iawolf/captureprobe/GameFrameSelectionPolicy.java tests/GameFrameSelectionPolicyTest.java
+          java -cp /tmp/control-lab6-test GameFrameSelectionPolicyTest
       - name: Android SDK
         uses: android-actions/setup-android@v4
       - name: Android 35
