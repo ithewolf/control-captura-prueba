@@ -1,4 +1,4 @@
-plugins { id 'com.android.application' }
+plugins { id 'com.android.application'; id 'org.jetbrains.kotlin.android' }
 android {
  namespace 'com.iawolf.captureprobe'
  compileSdk 35
@@ -13,9 +13,12 @@ android {
   ndk { abiFilters 'armeabi-v7a', 'arm64-v8a' }
  }
  compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+ kotlinOptions { jvmTarget = '17' }
 }
 
 dependencies {
+ // Lab6 test-only on-device inference (no network API). A model file is imported by the user.
+ implementation 'com.google.ai.edge.litertlm:litertlm-android:0.18.0'
  // JNA is needed by Vosk; @aar artifact-only notation does not guarantee transitive resolution.
  implementation 'net.java.dev.jna:jna:5.18.1@aar'
  implementation 'com.alphacephei:vosk-android:0.3.75@aar'
