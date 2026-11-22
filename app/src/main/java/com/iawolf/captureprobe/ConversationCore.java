@@ -64,6 +64,10 @@ public final class ConversationCore {
         return respond(mode, heard, vision, "");
     }
     public synchronized Answer respond(String mode, String heard, VisionStatus vision, String manualHistory) {
+        return respond(mode, heard, vision, manualHistory, null);
+    }
+    public synchronized Answer respond(String mode, String heard, VisionStatus vision,
+                                       String manualHistory, TacticalDecisionEngine.State tacticalState) {
         if (model == null) return Answer.unavailable("Modelo conversacional local no instalado");
         String input = clean(heard, MAX_INPUT_CHARS);
         if (input.isEmpty()) return Answer.unavailable("No se recibio una pregunta transcrita");
@@ -73,6 +77,10 @@ public final class ConversationCore {
         String profileContext = "coach".equals(m) && manualHistory != null
                 ? clean(manualHistory, 700) : "";
         String instructions=systemPrompt(m, vision);
+        if ("coach".equals(m) && tacticalState != null) {
+            TacticalDecisionEngine.Decision decision=TacticalDecisionEngine.evaluate(tacticalState);
+            instructions += " " + decision.promptContext();
+        }
         if (!profileContext.isEmpty()) instructions += " Datos de perfil proporcionados manualmente, NO observaciones visuales: "
                 + profileContext + ". No supongas resultados de partidas ni ubicaciones de enemigos. ";
         prompt.add(new Message("system", instructions));
