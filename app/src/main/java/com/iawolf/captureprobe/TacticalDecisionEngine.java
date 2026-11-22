@@ -6,16 +6,16 @@ package com.iawolf.captureprobe;
  */
 public final class TacticalDecisionEngine {
     private TacticalDecisionEngine() {}
-    public enum Action { RETREAT, RECOVER, FARM_SAFELY, CONSIDER_ATTACK, INSUFFICIENT_EVIDENCE }
+    public enum Action { RETREAT, RECOVER, FARM_SAFELY, IDENTIFY_ENEMY, INSUFFICIENT_EVIDENCE }
     public static final int UNKNOWN = -1;
     public static final class State {
-        public final int healthPercent, nearbyEnemies, nearbyAllies, enemyHealthPercent;
+        public final int healthPercent, nearbyEnemies, nearbyAllies;
         public final boolean reliable, fresh, laneWaveVisible, enemyChampionConfirmed, abilitiesReady;
         public State(int healthPercent, int nearbyEnemies, int nearbyAllies,
-                     int enemyHealthPercent, boolean reliable, boolean fresh,
+                     boolean reliable, boolean fresh,
                      boolean laneWaveVisible, boolean enemyChampionConfirmed, boolean abilitiesReady) {
             this.healthPercent=healthPercent; this.nearbyEnemies=nearbyEnemies;
-            this.nearbyAllies=nearbyAllies; this.enemyHealthPercent=enemyHealthPercent;
+            this.nearbyAllies=nearbyAllies;
             this.reliable=reliable; this.fresh=fresh; this.laneWaveVisible=laneWaveVisible;
             this.enemyChampionConfirmed=enemyChampionConfirmed; this.abilitiesReady=abilitiesReady;
         }
@@ -30,7 +30,7 @@ public final class TacticalDecisionEngine {
         public String promptContext() {
             return "Evaluacion tactica de observaciones validadas: " + action.name()
                 + ". Motivo: " + rationale + ". "
-                + "No inventes datos del minimapa, cooldowns ni adversarios. "
+                + "No inventes datos del minimapa, cooldowns ni adversarios. " + "No requieras porcentajes de HP ni mana enemigos. "
                 + "Es una sugerencia, no una orden automatica.";
         }
     }
@@ -47,11 +47,10 @@ public final class TacticalDecisionEngine {
             return new Decision(Action.RECOVER,"Vida critica; evitar exponerse.",true);
         if(s.nearbyEnemies > s.nearbyAllies + 1)
             return new Decision(Action.RETREAT,"Desventaja numerica observada.",true);
-        if(s.enemyChampionConfirmed && s.nearbyEnemies == 1 && s.nearbyAllies >= 0
-           && s.healthPercent >= 70 && s.enemyHealthPercent >= 0
-           && s.enemyHealthPercent <= 25 && s.abilitiesReady)
-            return new Decision(Action.CONSIDER_ATTACK,
-                "Posible oportunidad: rival confirmado con poca vida, pero faltan riesgos no observados.",true);
+        if(s.enemyChampionConfirmed && s.nearbyEnemies >= 1)
+            return new Decision(Action.IDENTIFY_ENEMY,
+                "Campeon enemigo detectado; no se necesita estimar su HP ni mana. "
+                + "Evaluar posicion y riesgos antes de recomendar atacar.",true);
         if(s.laneWaveVisible && s.healthPercent >= 50 && s.nearbyEnemies == 0)
             return new Decision(Action.FARM_SAFELY,
                 "Oleada visible y ningun enemigo cercano detectado; ausencia visible no prueba seguridad total.",true);
