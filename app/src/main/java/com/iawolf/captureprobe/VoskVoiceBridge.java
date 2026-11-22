@@ -125,7 +125,16 @@ public final class VoskVoiceBridge implements RecognitionListener {
   }
  }
 
- @Override public void onPartialResult(String json){}
+ @Override public void onPartialResult(String json){
+  if(!running||speaking)return;
+  try{
+   String partial=new JSONObject(json).optString("partial","").trim();
+   if(partial.isEmpty())return;
+   // Only keep the latest small text in RAM. No microphone recordings or uploads.
+   CaptureService.voskPartial=partial.length()>120?partial.substring(0,120):partial;
+   CaptureService.voskPartialUpdates++;
+  }catch(Exception ignored){}
+ }
  @Override public void onResult(String json){acceptResult(json);}
  @Override public void onFinalResult(String json){/* end-of-stream only; avoid duplicate reply */}
  @Override public void onError(Exception e){
