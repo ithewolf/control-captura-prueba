@@ -80,8 +80,7 @@ final class PiperVoiceOutput {
      // Wait for queued PCM playback to finish before resuming microphone.
      long played=track.getPlaybackHeadPosition() & 0xffffffffL;
      // AudioTrack.write() only queues PCM; never stop a long reply after 2 seconds.
-     long remaining=Math.max(0L,samples.length-played);
-     long drainMillis=Math.min(45000L,1000L*remaining/rate+1500L);
+     long drainMillis=PiperPlaybackBudget.drainMillis(samples.length,played,rate);
      long deadline=android.os.SystemClock.elapsedRealtime()+drainMillis;
      while(played<samples.length && android.os.SystemClock.elapsedRealtime()<deadline&&!closed){
       android.os.SystemClock.sleep(25);
