@@ -133,6 +133,7 @@ def evaluate(labels, predictions, split_map):
                     fp += 1
             fn += len(ground_truth) - len(used_labels)
         results[split] = {
+            "status": "MEASURED" if reviewed_frames else "NOT_MEASURED",
             "true_positive": tp, "false_positive": fp, "false_negative": fn,
             "reviewed_frames": reviewed_frames,
             "unscored_predictions_outside_reviewed_frames": skipped_unreviewed,
@@ -141,7 +142,11 @@ def evaluate(labels, predictions, split_map):
             "note": "One-to-one matches within human-reviewed timestamp windows only",
             "limitation": "Metrics only describe reviewed frames, not full-video performance",
         }
-    return {"status": "MEASURED", "splits": results}
+    statuses = [v["status"] for v in results.values()]
+    overall = ("MEASURED" if all(x == "MEASURED" for x in statuses)
+               else "PARTIALLY_MEASURED" if any(x == "MEASURED" for x in statuses)
+               else "NOT_MEASURED")
+    return {"status": overall, "splits": results}
 
 def main():
     p = argparse.ArgumentParser()
