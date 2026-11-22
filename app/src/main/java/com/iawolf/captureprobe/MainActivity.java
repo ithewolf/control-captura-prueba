@@ -31,6 +31,7 @@ public class MainActivity extends Activity {
    "\nTTS iniciados/finalizados/fallidos: "+CaptureService.ttsStarted+"/"+CaptureService.ttsCompleted+"/"+CaptureService.ttsFailed+
    "\nPermiso de micrófono: "+(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED?"concedido":"pendiente/denegado")+
    "\nErrores de escucha: "+CaptureService.speechErrors+
+   "\nModo seleccionado: "+getSharedPreferences("control_mode",MODE_PRIVATE).getString("mode","coach")+" (diagnóstico, no entrenador completo)"+
    "\nÚltimo texto escuchado: "+CaptureService.lastHeard+
    "\nRespuesta local: "+CaptureService.lastReply+
    "\nIntentos de escucha: "+CaptureService.listenAttempts+
@@ -103,13 +104,10 @@ public class MainActivity extends Activity {
     voice.setSpeechRate(1.06f);voice.setPitch(0.88f);
    }
    voiceButton.setEnabled(voiceReady);
-   speakWelcomeIfReady();
+   // Avoid unsolicited TTS during microphone diagnostics; it contaminates Vosk.
    // No mostrar aviso cada vez que se abre la app. STT y captura son independientes.
    if(!voiceReady)voiceButton.setText("Sin voz seleccionada (prueba desactivada)");
-   if(!getSharedPreferences("control_voice_settings",MODE_PRIVATE).getBoolean("voice_setup_seen",false)){
-    getSharedPreferences("control_voice_settings",MODE_PRIVATE).edit().putBoolean("voice_setup_seen",true).apply();
-    showVoiceChooser();
-   }
+   // Voice chooser remains available on demand; do not stack dialogs at startup.
   }));
   Button chooseMode=new Button(this);chooseMode.setText("Elegir modo de CONTROL");content.addView(chooseMode);
   chooseMode.setOnClickListener(v->showModeChooser());
@@ -138,7 +136,7 @@ public class MainActivity extends Activity {
    .setNegativeButton("Cancelar",null).show());stop.setOnClickListener(v->startService(new Intent(this,CaptureService.class).setAction("STOP")));
   l.addView(scroll);
   setContentView(l);
-  showModeChooser();
+  // Mode chooser is now on demand to avoid overlapping the permission dialog.
  }
  private void speakWelcomeIfReady(){
   if(welcomeSpoken || !voiceReady || voice==null) return;
