@@ -26,6 +26,24 @@ public class CaptureService extends Service {
  private static final Object historyLock=new Object();
  private static final ArrayDeque<Bitmap> history=new ArrayDeque<>();
  private static final int HISTORY_LIMIT=10;
+ // Consentimiento explícito: 3 cuadros horizontales en memoria (nunca a disco).
+ private static final Object evidenceLock=new Object();
+ private static final ArrayDeque<Bitmap> evidence=new ArrayDeque<>();
+ private static final ArrayDeque<Long> evidenceTimes=new ArrayDeque<>();
+ private static final GameFrameSelectionPolicy evidencePolicy=new GameFrameSelectionPolicy();
+ private static boolean evidenceEnabled=false;
+ public static void beginEvidenceCollection(){
+  synchronized(evidenceLock){evidence.clear();evidenceTimes.clear();evidencePolicy.reset();evidenceEnabled=true;}
+ }
+ public static int evidenceCount(){synchronized(evidenceLock){return evidence.size();}}
+ public static Bitmap[] evidenceFrames(){synchronized(evidenceLock){return evidence.toArray(new Bitmap[0]);}}
+ public static long[] evidenceTimestamps(){
+  synchronized(evidenceLock){long[] out=new long[evidenceTimes.size()];int i=0;
+   for(Long t:evidenceTimes)out[i++]=t;return out;}
+ }
+ private static void clearEvidence(){
+  synchronized(evidenceLock){evidenceEnabled=false;evidence.clear();evidenceTimes.clear();evidencePolicy.reset();}
+ }
  public static Bitmap[] getRecentFrames(){
   synchronized(historyLock){return history.toArray(new Bitmap[0]);}
  }
@@ -119,7 +137,7 @@ public class CaptureService extends Service {
   if(active)return START_NOT_STICKY;
   active=true;stopping=false;frames=changes=darkFrames=callbacks=received=0;
   nullImages=staleImages=resizes=discarded=0;lastEvent="Inicio";status="iniciando";error="";seen=false;lastAt=0;
-  previewFrame=null;previewAt=0;clearRecentFrames();
+  previewFrame=null;previewAt=0;clearRecentFrames();clearEvidence();
   audioStatus="iniciando";lastHeard="";lastReply="";piperStatus="sin probar";piperLastMs=-1;wakeStatus="sin evaluar";voskPartial="sin resultados parciales";voskPartialUpdates=0;ttsStatus="iniciando";ttsVoice="sin seleccionar";speechErrors=ttsStarted=ttsCompleted=ttsFailed=0;
   listenAttempts=recognizedPhrases=framesDuringLastListen=voiceRestarts=0;
   sessionStartedAt=SystemClock.elapsedRealtime();AvContext.reset(sessionStartedAt);lastAudioRecoveryMs=-1;
@@ -179,10 +197,10 @@ public class CaptureService extends Service {
    display.setSurface(reader.getSurface());images.post(old::close);
   }catch(Exception e){error=e.toString();status="error";stopNow();}
  }
- private static Bitmap makePreview(Image img,Image.Plane p){
+ private static Bitmap makePreview(Image img,Image.Plane p,int maxPixels){
   int sourceW=img.getWidth(),sourceH=img.getHeight();
   int maxSide=Math.max(sourceW,sourceH);
-  float scale=Math.min(1f,320f/maxSide);
+  float scale=Math.min(1f,(float)maxPixels/maxSide);
   int outW=Math.max(1,Math.round(sourceW*scale));
   int outH=Math.max(1,Math.round(sourceH*scale));
   ByteBuffer buffer=p.getBuffer();
@@ -219,9 +237,20 @@ public class CaptureService extends Service {
    hudZoneTelemetry="mapa(media="+zones.mapMean+",contraste="+zones.mapContrast+") "+
        "controles(media="+zones.controlsMean+",contraste="+zones.controlsContrast+") "+
        "centro(media="+zones.centerMean+")";
+   // Recolección manual de 3 cuadros horizontales a 1024px máximo.
+   // No se almacena en disco, no se transmite y se detiene automáticamente.
+   synchronized(evidenceLock){
+    if(evidenceEnabled&&evidencePolicy.shouldCapture(now,img.getWidth(),img.getHeight())){
+     try{
+      Bitmap sample=makePreview(img,p,1024);
+      evidence.addLast(sample);evidenceTimes.addLast(System.currentTimeMillis());
+      if(evidencePolicy.finished())evidenceEnabled=false;
+     }catch(RuntimeException sampleError){lastEvent="muestra visual descartada";}
+    }
+   }
    // Un fotograma visual cada 3 segundos; no altera la tasa de captura.
    if(now-previewAt>=3000){
-    try{Bitmap next=makePreview(img,p);addRecentFrame(next);previewFrame=next;previewAt=now;}
+    try{Bitmap next=makePreview(img,p,320);addRecentFrame(next);previewFrame=next;previewAt=now;}
     catch(RuntimeException previewError){lastEvent="vista previa no disponible";}
    }
    if(seen&&hash!=data.fingerprint)changes++;
@@ -242,6 +271,8 @@ public class CaptureService extends Service {
   audioStatus="detenido";
   main.removeCallbacks(monitor);
   previewFrame=null;previewAt=0;clearRecentFrames();
+  // Conservar las muestras ya capturadas hasta cerrar la actividad para
+  // permitir exportación voluntaria luego de finalizar la proyección.
   if(display!=null){display.release();display=null;}
   if(reader!=null){reader.close();reader=null;}
   if(projection!=null){MediaProjection p=projection;projection=null;p.stop();}
