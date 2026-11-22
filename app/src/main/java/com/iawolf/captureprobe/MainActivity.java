@@ -147,7 +147,7 @@ public class MainActivity extends Activity {
        .putBoolean("free_listen",next).apply();
     new android.app.AlertDialog.Builder(this)
       .setTitle(next?"Prueba sin palabra de activación ACTIVA":"Prueba desactivada")
-      .setMessage(next?"Solo para diagnóstico: durante una sesión activa CONTROL intentará contestar a frases reconocidas de tres palabras o más, aunque no digas CONTROL. Puede activarse con sonidos del ambiente, así que probá con el juego cerrado y desactivala al terminar.":"CONTROL vuelve a exigir su palabra de activación.")
+      .setMessage(next?"Solo diagnóstico: durante una sesión activa CONTROL procesará frases reconocidas de 2 a 20 palabras aunque no digas CONTROL. SOLO responde preguntas incluidas en su intérprete básico; no habilita conversación libre. Podría activarse con sonidos del ambiente: probá con el juego cerrado. Se desactiva al detener la sesión.":"CONTROL vuelve a exigir su palabra de activación.")
       .setPositiveButton("Entendido",null).show();
   });
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
