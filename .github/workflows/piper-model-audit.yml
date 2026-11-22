@@ -1,4 +1,4 @@
-name: Piper Spanish AR model audit (not APK)
+name: Piper male Spanish voice model audit (not APK)
 on:
   workflow_dispatch:
   push:
@@ -19,12 +19,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Fetch and check Piper Argentine model
+      - name: Fetch and check Piper male Spanish test model
         run: python tools/audit_piper_model.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: CONTROL-Piper-es-AR-Daniela-model-pack-NOT-APK
+          name: CONTROL-Piper-es-MX-Ald-MALE-TEST-NOT-APK
           path: |
             build/piper-voice-audit/audit.json
             build/piper-voice-audit/model.tar.bz2
