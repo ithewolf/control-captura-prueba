@@ -29,6 +29,15 @@ public final class ConversationCoreTest {
         check(!captured.get(2).get(0).content.contains("Modo Compañero"), "mode isolation");
         for(int i=0;i<8;i++)core.respond("companero", "nueva pregunta "+i, none);
         check(core.rememberedPairs("companero") == 6, "memory remains bounded");
+        String saved = core.exportHistory("companero");
+        ConversationCore restored = new ConversationCore(messages -> "Nueva respuesta");
+        check(restored.importHistory("companero", saved), "restore saved memory");
+        check(restored.rememberedPairs("companero") == 6, "six exchanges restored");
+        check(restored.rememberedPairs("coach") == 0, "restore keeps modes isolated");
+        check(!restored.importHistory("companero", "corrupt"), "reject corrupt memory");
+        check(restored.rememberedPairs("companero") == 6, "corrupt memory must not erase valid history");
+        check(restored.respond("companero", "¿Recordás la charla?", none).ready, "restore model works");
+        check(!restored.importHistory("companero", saved.replace("assistant:", "admin:")), "reject unsupported role");
         core.clear("companero");
         check(core.rememberedPairs("companero") == 0, "clear memory");
         ConversationCore failing = new ConversationCore(messages -> { throw new IllegalStateException("no runtime"); });
