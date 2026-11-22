@@ -34,6 +34,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
  private Model model;
  private TextToSpeech tts;
  private PiperVoiceOutput piper;
+ private boolean piperDisabledThisSession=false;
  private boolean running=false, speaking=false, prepared=false, ttsReady=false;
  private boolean unexplainedIntentNotified=false;
  private long lastTtsFinished=-1L, listenFrameBaseline=0L;
@@ -51,7 +52,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
  public void start(){
   main.post(()->{
    if(running)return;
-   running=true;unexplainedIntentNotified=false;
+   running=true;unexplainedIntentNotified=false;piperDisabledThisSession=false;
    CaptureService.audioStatus="cargando modelo español Vosk sin conexión";
    initTts();
    try {
@@ -259,7 +260,7 @@ public final class VoskVoiceBridge implements RecognitionListener {
   });
  }
  private void say(String words){
-  boolean usePiper="piper".equals(context.getSharedPreferences(
+  boolean usePiper=!piperDisabledThisSession && "piper".equals(context.getSharedPreferences(
      "control_voice_settings",Context.MODE_PRIVATE).getString("voice_source","device"));
   if(!usePiper && (!ttsReady||tts==null)){
    CaptureService.ttsStatus="respuesta disponible solo en texto";return;
@@ -271,12 +272,16 @@ public final class VoskVoiceBridge implements RecognitionListener {
    CaptureService.ttsStatus="Piper: generando voz sin conexión (laboratorio)";
    CaptureService.ttsVoice="Piper Ald (es-MX, provisional)";
    if(piper==null)piper=new PiperVoiceOutput(context);
+   final long piperStartedAt=SystemClock.elapsedRealtime();
    piper.speak(words,(ok,reason)->{
+    CaptureService.piperLastMs=SystemClock.elapsedRealtime()-piperStartedAt;
+    CaptureService.piperStatus=(ok?"Piper OK: ":"Piper ERROR: ")+reason;
     if(!running)return;
     if(ok){
      CaptureService.ttsStatus="Piper: "+reason;
      finishSpeech(true);
     }else{
+     piperDisabledThisSession=true;
      CaptureService.ttsStatus="Piper falló: "+reason+"; usando voz del dispositivo";
      if(ttsReady&&tts!=null){
       if(tts.speak(words,TextToSpeech.QUEUE_FLUSH,null,"control_reply")!=TextToSpeech.SUCCESS)
