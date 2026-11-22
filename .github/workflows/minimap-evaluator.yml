@@ -1,0 +1,22 @@
+name: CONTROL minimap offline evaluator
+on:
+  push:
+    branches: [lab7-model-diagnostics-20261122]
+    paths:
+      - 'minimap_lab/**'
+      - '.github/workflows/minimap-evaluator.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  unit-test-only:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pillow for local image tests
+        run: python3 -m pip install --disable-pip-version-check 'Pillow>=10,<13'
+      - name: Offline synthetic detector tests
+        run: |
+          python3 -m unittest discover -s minimap_lab/tests -v
+          python3 -m compileall -q minimap_lab
