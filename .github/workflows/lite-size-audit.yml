@@ -37,9 +37,19 @@ jobs:
         run: gradle --no-daemon :app:assembleDebug
       - name: Inspect real artifact and enforce 200 MiB trial ceiling
         run: python lite_audit/apk_size_audit.py app/build/outputs/apk/debug/app-debug.apk --budget-mb 200 --output lite-size-report.json
+      - name: Inventory voice model and native libraries
+        if: always()
+        run: |
+          if test -f app/build/outputs/apk/debug/app-debug.apk; then
+            python lite_audit/package_inventory.py app/build/outputs/apk/debug/app-debug.apk --budget-mib 200 --output lite-packaging-report.json
+          else
+            echo "APK not built; packaging audit unavailable"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: CONTROL-lite-footprint-report
-          path: lite-size-report.json
+          path: |
+            lite-size-report.json
+            lite-packaging-report.json
           if-no-files-found: ignore
