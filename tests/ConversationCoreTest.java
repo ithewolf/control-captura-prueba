@@ -26,6 +26,11 @@ public final class ConversationCoreTest {
         check(core.rememberedPairs("coach") == 0, "coach and companion are isolated");
         check(core.respond("coach", "¿Ves mi pantalla?", new ConversationCore.VisionStatus(true,true,false)).ready, "coach reply");
         check(captured.get(2).get(0).content.contains("NO reconoce campeones"), "do not fabricate vision");
+        check(core.respond("coach","¿Qué rol estoy practicando?",none,
+              "Historial manual de campeones y roles recientes: Yasuo (MID); Lee Sin (JUNGLA)").ready,
+              "coach receives manual memory");
+        check(captured.get(3).get(0).content.contains("Lee Sin (JUNGLA)"),"coach prompt contains manually recorded role");
+        check(!captured.get(3).get(0).content.contains("Estoy mirando el juego"),"manual memory is not live vision");
         check(!captured.get(2).get(0).content.contains("Modo Compañero"), "mode isolation");
         for(int i=0;i<8;i++)core.respond("companero", "nueva pregunta "+i, none);
         check(core.rememberedPairs("companero") == 6, "memory remains bounded");
