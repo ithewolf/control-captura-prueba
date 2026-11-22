@@ -1,0 +1,38 @@
+{
+  "schema": 1,
+  "policy": "filenames_are_locators_not_labels",
+  "videos": [
+    {
+      "id": "yasuo_a",
+      "file": "TOP 1 YASUO SERVER “JarePley”🐲 WILD RIFT.mp4",
+      "split": "development"
+    },
+    {
+      "id": "yasuo_b",
+      "file": "TOP 1 YASUO LEGENDARY🐲 WILD RIFT(1).mp4",
+      "split": "held_out"
+    },
+    {
+      "id": "fiora_a",
+      "file": "FIORA DESTROYS TOP 200 SETT WILD RIFT RANKED FULL GAMEPLAY.mp4",
+      "split": "development"
+    },
+    {
+      "id": "fiora_b",
+      "file": "When Syndra Tilts Fiora Mid… NEVER GIVE UP! 💀 Wild Rift 4K Ranked Gameplay.mp4",
+      "split": "held_out"
+    },
+    {
+      "id": "warwick_a",
+      "file": "10+ DEATHS on EVERY LANE how TO play WARWICK & CARRY!!.mp4",
+      "split": "held_out"
+    }
+  ],
+  "metrics": [
+    "enemy_presence_precision",
+    "enemy_presence_recall",
+    "champion_identity_accuracy",
+    "false_positive_per_minute",
+    "latency_ms"
+  ]
+}
