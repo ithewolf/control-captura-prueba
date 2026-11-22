@@ -31,3 +31,15 @@ No copiar código privado de ChatGPT, Gemini ni Meta AI de WhatsApp. No añadir 
 
 ## Precauciones de distribución
 Los modelos GGUF NO están en este repositorio. No incluir archivos de centenas de MB en Git. Verificar licencia por modelo, cuantización y fuente antes de distribución. Evitar descarga no autorizada o consumo accidental de servicios pagos.
+
+## Trabajo implementado en Lab6 (22/11/2026)
+- `LiteRtTextModel.kt`: conexión de la interfaz `ConversationCore.LocalTextModel` con el motor de inferencia **LiteRT-LM 0.18.0**. Ejecuta `Engine.initialize` y `sendMessage` fuera del hilo principal, en CPU. **Sin verificación todavía de compilación Android ni de inferencia en dispositivo**.
+- `Lab6TextActivity.java`: interfaz independiente para importar mediante selector de archivos un modelo `.litertlm` al almacenamiento privado del teléfono, cargarlo localmente, escribir preguntas y medir latencia. No descarga modelos por su cuenta.
+- `MainActivity.java`: acceso a la pantalla de prueba; no se modificó el flujo Vosk / captura.
+- `app/build.gradle` incorpora LiteRT-LM y Kotlin 2.4.21. El paquete debug usa `com.iawolf.captureprobe.lab6`: puede coexistir con la aplicación de Lab4.
+- `.github/workflows/lab6-ia-local.yml`: compilación experimental con `ubuntu-24.04` estándar, tests Java y artefacto APK retenido 3 días; se activa por cambios en la rama Lab6. No equivale a compilación exitosa: mirar GitHub Actions.
+- Modelo recomendado para ensayo inicial: `litert-community/Qwen3-0.6B`, archivo `Qwen3-0.6B.litertlm` (no incluido), https://huggingface.co/litert-community/Qwen3-0.6B. Revisar licencia y tamaño antes de descargar.
+- El test real de calidad exige 10 preguntas no previstas, una repregunta y métricas en el Samsung. El modelo puede rendir insuficientemente; no afirmar calidad sin medición.
+
+**Importante:** Este laboratorio prueba LLM por texto sin micrófono ni juego. El éxito de build, modelo cargado y respuesta en dispositivo son tres pasos distintos. No dar por resuelta la inteligencia de CONTROL hasta cumplirlos.
+
