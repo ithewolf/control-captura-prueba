@@ -19,6 +19,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - uses: android-actions/setup-android@v4
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
@@ -33,8 +34,15 @@ jobs:
         run: |
           test -f "$ANDROID_HOME/platforms/android-35/android.jar"
           test -d "$ANDROID_HOME/build-tools/35.0.0"
+      - name: Verify capture sampler before APK
+        run: |
+          mkdir -p build/smoke
+          javac -d build/smoke app/src/main/java/com/iawolf/captureprobe/FrameSampler.java tests/FrameSamplerSmokeTest.java
+          java -cp build/smoke com.iawolf.captureprobe.FrameSamplerSmokeTest
       - name: Build isolated debug APK
-        run: gradle --no-daemon :app:assembleDebug
+        run: |
+          gradle --no-daemon --stacktrace :app:assembleDebug 2>&1 | tee lite-build.log
+          test -s app/build/outputs/apk/debug/app-debug.apk
       - name: Inspect real artifact and enforce 200 MiB trial ceiling
         run: python lite_audit/apk_size_audit.py app/build/outputs/apk/debug/app-debug.apk --budget-mb 200 --output lite-size-report.json
       - name: Inventory voice model and native libraries
@@ -60,4 +68,5 @@ jobs:
           path: |
             lite-size-report.json
             lite-packaging-report.json
+            lite-build.log
           if-no-files-found: ignore
