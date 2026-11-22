@@ -1,0 +1,40 @@
+name: CONTROL Lite APK footprint trial
+on:
+  push:
+    branches: [lab3-lite-apk-footprint]
+    paths:
+      - 'app/**'
+      - 'lite_audit/**'
+      - '.github/workflows/lite-size-audit.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lite-audit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Test APK analyzer offline
+        run: python -m unittest discover -s lite_audit -p 'test_*.py' -v
+      - name: Confirm Android SDK
+        run: |
+          test -f "$ANDROID_HOME/platforms/android-35/android.jar"
+          test -d "$ANDROID_HOME/build-tools/35.0.0"
+      - name: Build isolated debug APK
+        run: gradle --no-daemon :app:assembleDebug
+      - name: Inspect real artifact and enforce 200 MiB trial ceiling
+        run: python lite_audit/apk_size_audit.py app/build/outputs/apk/debug/app-debug.apk --budget-mb 200 --output lite-size-report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: CONTROL-lite-footprint-report
+          path: lite-size-report.json
+          if-no-files-found: ignore
