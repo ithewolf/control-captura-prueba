@@ -51,6 +51,8 @@ public final class ConversationCore {
     }
 
     private static final int MAX_PAIRS = 6;
+    // Keep six pairs on disk, send only the latest three to reduce prompt work.
+    private static final int CONTEXT_PAIRS = 3;
     private static final int MAX_INPUT_CHARS = 600;
     private static final int MAX_OUTPUT_CHARS = 1100;
     private final LocalTextModel model;
@@ -66,7 +68,9 @@ public final class ConversationCore {
         ArrayDeque<Message> turns = history.computeIfAbsent(m, key -> new ArrayDeque<>());
         ArrayList<Message> prompt = new ArrayList<>();
         prompt.add(new Message("system", systemPrompt(m, vision)));
-        prompt.addAll(turns);
+        int skip = Math.max(0, turns.size() - CONTEXT_PAIRS * 2);
+        int index = 0;
+        for (Message turn : turns) if (index++ >= skip) prompt.add(turn);
         prompt.add(new Message("user", input));
         try {
             String reply = clean(model.generate(Collections.unmodifiableList(prompt)), MAX_OUTPUT_CHARS);
