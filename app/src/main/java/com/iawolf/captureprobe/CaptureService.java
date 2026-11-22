@@ -40,6 +40,7 @@ public class CaptureService extends Service {
  public static volatile boolean active=false;
  public static volatile String status="detenido",error="";
  public static volatile String audioStatus="sin iniciar",lastHeard="",lastReply="";
+ public static volatile String wakeStatus="sin evaluar";
  public static volatile String ttsStatus="sin iniciar",ttsVoice="sin seleccionar";
  public static volatile int speechErrors=0,ttsStarted=0,ttsCompleted=0,ttsFailed=0;
  // Prueba verificable de simultaneidad: recepciones de imagen durante una escucha.
@@ -105,7 +106,7 @@ public class CaptureService extends Service {
   active=true;stopping=false;frames=changes=darkFrames=callbacks=received=0;
   nullImages=staleImages=resizes=discarded=0;lastEvent="Inicio";status="iniciando";error="";seen=false;lastAt=0;
   previewFrame=null;previewAt=0;clearRecentFrames();
-  audioStatus="iniciando";lastHeard="";lastReply="";ttsStatus="iniciando";ttsVoice="sin seleccionar";speechErrors=ttsStarted=ttsCompleted=ttsFailed=0;
+  audioStatus="iniciando";lastHeard="";lastReply="";wakeStatus="sin evaluar";ttsStatus="iniciando";ttsVoice="sin seleccionar";speechErrors=ttsStarted=ttsCompleted=ttsFailed=0;
   listenAttempts=recognizedPhrases=framesDuringLastListen=voiceRestarts=0;
   sessionStartedAt=SystemClock.elapsedRealtime();AvContext.reset(sessionStartedAt);lastAudioRecoveryMs=-1;
   simultaneousAvObserved=false;hudZoneTelemetry="sin datos";
