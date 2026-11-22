@@ -7,6 +7,7 @@ on:
       - 'tools/voice_identity_reference.py'
       - 'tools/lab5_openvoice_v2.py'
       - 'tools/lab5_validate_voice_trials.py'
+      - 'tools/test_next_stage_voice_preflight.py'
       - 'lab5_voice_identity/**'
       - '.github/workflows/control-lab5-voice.yml'
 permissions:
@@ -21,6 +22,8 @@ jobs:
         run: sudo apt-get update -qq && sudo apt-get install -y ffmpeg
       - name: Verify local voice candidate script is syntactically valid
         run: python -m py_compile tools/lab5_openvoice_v2.py tools/voice_identity_reference.py tools/lab5_validate_voice_trials.py
+      - name: Test private reference and weights preflight failure paths
+        run: python -m unittest discover -s tools -p 'test_next_stage_voice_preflight.py' -v
       - name: Generate synthetic test voice (not user's reference)
         run: |
           mkdir -p build/lab5-fixture
