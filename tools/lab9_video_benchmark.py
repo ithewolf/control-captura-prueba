@@ -70,45 +70,63 @@ def identity(row):
     return (row["champion_id"].strip().lower(), row["team"])
 
 def evaluate(labels, predictions, split_map):
+    """One-to-one scored matches prevent repeated predictions inflating recall.
+
+    Identity errors count as both missed ground truth and a false prediction.
+    A negative annotation (ALLY/UNKNOWN) is still an independently reviewed
+    frame, not proof that all unannotated frames contain no enemies.
+    """
     if labels is None or predictions is None:
         return {"status": "NOT_MEASURED", "reason": "Reviewed labels and detector predictions required"}
-    by_video = defaultdict(list)
-    for p in predictions:
-        ident = identity(p)
-        score = float(p.get("confidence", "nan"))
-        if not math.isfinite(score) or not 0 <= score <= 1:
+
+    reviewed = defaultdict(list)
+    detected = defaultdict(list)
+    for label in labels:
+        if label.get("video_id") not in split_map:
+            raise ValueError("Unknown video_id in human-reviewed labels")
+        identity(label)
+        reviewed[label["video_id"]].append(label)
+    for pred in predictions:
+        vid = pred.get("video_id")
+        if vid not in split_map:
+            raise ValueError("Unknown video_id in detector predictions")
+        ident = identity(pred)
+        confidence = float(pred.get("confidence", "nan"))
+        if not math.isfinite(confidence) or not 0 <= confidence <= 1:
             raise ValueError("Invalid prediction confidence")
-        if score >= .80 and ident[1] == "ENEMY" and ident[0]:
-            by_video[p["video_id"]].append(p)
+        if confidence >= .80 and ident[1] == "ENEMY" and ident[0]:
+            detected[vid].append(pred)
+
     results = {}
     for split in ("development", "held_out"):
         tp = fp = fn = 0
-        for label in labels:
-            vid = label["video_id"]
-            if split_map.get(vid) != split:
+        for vid, video_split in split_map.items():
+            if video_split != split:
                 continue
-            gt = identity(label)
-            if gt[1] != "ENEMY":
-                continue
-            near = [p for p in by_video[vid]
-                    if abs(float(p["time_s"]) - float(label["time_s"])) <= .5]
-            if any(identity(p) == gt for p in near):
-                tp += 1
-            else:
-                fn += 1
-        # Count predictions with no matching independently labeled enemy.
-        for vid, rows in by_video.items():
-            if split_map.get(vid) != split:
-                continue
-            for p in rows:
-                if not any(l["video_id"] == vid and
-                    abs(float(l["time_s"]) - float(p["time_s"])) <= .5 and
-                    identity(l) == identity(p) for l in labels):
+            ground_truth = [r for r in reviewed[vid] if identity(r)[1] == "ENEMY"]
+            predictions_here = sorted(detected[vid], key=lambda r: -float(r["confidence"]))
+            used_labels = set()
+            for prediction in predictions_here:
+                same_identity = [
+                    (abs(float(prediction["time_s"]) - float(label["time_s"])), idx)
+                    for idx, label in enumerate(ground_truth)
+                    if idx not in used_labels
+                    and identity(label) == identity(prediction)
+                    and abs(float(prediction["time_s"]) - float(label["time_s"])) <= .5
+                ]
+                if same_identity:
+                    used_labels.add(min(same_identity)[1])
+                    tp += 1
+                else:
                     fp += 1
-        results[split] = {"true_positive": tp, "false_positive": fp, "false_negative": fn,
-                          "precision": round(tp/(tp+fp), 4) if tp+fp else None,
-                          "recall": round(tp/(tp+fn), 4) if tp+fn else None,
-                          "note": "No matching by video filename; matched to human labels"}
+            fn += len(ground_truth) - len(used_labels)
+        results[split] = {
+            "true_positive": tp, "false_positive": fp, "false_negative": fn,
+            "precision": round(tp/(tp+fp), 4) if tp+fp else None,
+            "recall": round(tp/(tp+fn), 4) if tp+fn else None,
+            "note": "One-to-one time-and-identity matches to independently human-reviewed labels",
+            "limitation": "Unreviewed timestamps cannot be treated as verified negatives",
+        }
     return {"status": "MEASURED", "splits": results}
 
 def main():
