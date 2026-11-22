@@ -1,0 +1,49 @@
+name: CONTROL Lab6 - APK IA local (experimental)
+on:
+  push:
+    branches: [lab6-control-cerebro-local]
+    paths:
+      - 'app/**'
+      - 'build.gradle'
+      - 'settings.gradle'
+      - 'tests/**'
+      - '.github/workflows/lab6-ia-local.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: control-lab6-build
+  cancel-in-progress: true
+jobs:
+  test-and-apk:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Probar memoria y conversacion sin modelo simulado como real
+        run: |
+          mkdir -p /tmp/control-lab6-test
+          javac -encoding UTF-8 -d /tmp/control-lab6-test app/src/main/java/com/iawolf/captureprobe/ConversationCore.java tests/ConversationCoreTest.java
+          java -cp /tmp/control-lab6-test ConversationCoreTest
+      - name: Android SDK
+        uses: android-actions/setup-android@v4
+      - name: Android 35
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+      - name: Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Compilar APK experimental con runtime LiteRT
+        run: gradle --no-daemon --stacktrace :app:assembleDebug
+      - name: Evidencia APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: CONTROL-Lab6-LiteRT-APK-EXPERIMENTAL
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 3
