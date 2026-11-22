@@ -8,6 +8,7 @@ public class LocalIntentSmokeTest {
   check(LocalIntent.reply("control que ves en la pantalla","coach",true,false,true).contains("campeones"),"visual limitation");
   check(LocalIntent.reply("necesito consejo de jungla","coach",true,false,true).contains("no tengo visión"),"no fabricated tactics");
   check(LocalIntent.reply("hola","coach",true,false,true)!=null,"greeting");
+  check(LocalIntent.reply("tengo una imagen del juego","companero",true,false,true)==null,"unknown phrase must not trigger generic reply");
   System.out.println("LocalIntentSmokeTest OK");
  }
 }
