@@ -34,6 +34,15 @@ jobs:
           curl -fL --retry 3 --retry-all-errors --retry-delay 4 --max-time 240 -o app/libs/sherpa-onnx-1.12.40.aar \
             https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.12.40/sherpa-onnx-1.12.40.aar
           test "$(stat -c%s app/libs/sherpa-onnx-1.12.40.aar)" -eq 56480361
+      - name: Inspect exact Piper Java ABI before implementing playback
+        shell: bash
+        run: |
+          mkdir -p build/piper-java-api
+          unzip -p app/libs/sherpa-onnx-1.12.40.aar classes.jar > build/piper-java-api/classes.jar
+          for cls in OfflineTts OfflineTtsConfig OfflineTtsModelConfig OfflineTtsVitsModelConfig GeneratedAudio; do
+            javap -classpath build/piper-java-api/classes.jar -public "com.k2fsa.sherpa.onnx.$cls" >> build/piper-java-api/api.txt
+          done
+          cat build/piper-java-api/api.txt
       - name: Build isolated Android APK with native runtime and voice assets (playback NOT wired)
         shell: bash
         run: gradle :app:assembleDebug -PpiperProbe --no-daemon --stacktrace
@@ -46,4 +55,5 @@ jobs:
           path: |
             app/build/outputs/apk/debug/*.apk
             build/piper-android-packaging/report.json
+            build/piper-java-api/api.txt
           if-no-files-found: warn
