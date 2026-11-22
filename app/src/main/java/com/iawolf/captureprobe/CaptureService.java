@@ -101,6 +101,11 @@ public class CaptureService extends Service {
    .setOngoing(true).addAction(new Notification.Action.Builder(null,"Detener",stop).build()).build();
  }
  @Override public int onStartCommand(Intent intent,int flags,int startId){
+  if(intent!=null&&"TEST_REPLY".equals(intent.getAction())){
+   if(active&&voiceBridge!=null)voiceBridge.diagnosticReply();
+   else wakeStatus="No hay sesión de pantalla y voz activa para la prueba";
+   return START_NOT_STICKY;
+  }
   if(intent==null||!"START".equals(intent.getAction())){stopNow();return START_NOT_STICKY;}
   if(active)return START_NOT_STICKY;
   active=true;stopping=false;frames=changes=darkFrames=callbacks=received=0;
