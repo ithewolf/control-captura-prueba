@@ -27,14 +27,26 @@ android {
 tasks.register('prepareVoskSpanishModel') {
  def outputRoot=file("$buildDir/generated/voskAssets/model-es")
  outputs.dir(outputRoot)
+ // A partial previous download must never count as a valid cached voice model.
+ outputs.upToDateWhen {
+  new File(outputRoot,'uuid').isFile() &&
+  new File(outputRoot,'am').isDirectory() &&
+  new File(outputRoot,'conf').isDirectory()
+ }
  doLast {
   def marker=new File(outputRoot,'uuid')
-  if(marker.isFile())return
+  if(marker.isFile() &&
+      new File(outputRoot,'am').isDirectory() &&
+      new File(outputRoot,'conf').isDirectory())return
+  if(marker.exists())marker.delete()
   outputRoot.mkdirs()
   def modelUrl='https://alphacephei.com/vosk/models/vosk-model-small-es-0.42.zip'
   def zipFile=new File(temporaryDir,'vosk-es.zip')
   zipFile.parentFile.mkdirs()
-  new URL(modelUrl).openStream().withCloseable { input ->
+  def connection=new URL(modelUrl).openConnection()
+  connection.connectTimeout=15000
+  connection.readTimeout=60000
+  connection.getInputStream().withCloseable { input ->
    zipFile.withOutputStream { output -> output << input }
   }
   new java.util.zip.ZipInputStream(new FileInputStream(zipFile)).withCloseable { zis ->
