@@ -26,3 +26,17 @@ Los archivos tienen nombre `frame_01.png`, `frame_02.png`, `frame_03.png` más `
 Primero recopilar muestras autorizadas y etiquetadas según evidencia visible (menú, selección, campeón visible, partida). Comparar cuadros horizontales nativos para diseñar detectores y registrar incertidumbre. No confundir cambios de color o HUD con una identificación táctica. Luego, conectar observaciones verificadas al cerebro local, que sigue en laboratorio separado.
 
 CONTROL y Wild Rift son exclusivos de este proyecto. No reutilizar contenido de Honor of Kings.
+
+## Revisión offline del ZIP (nueva herramienta)
+
+Una vez exportadas las imágenes manualmente desde CONTROL:
+
+```bash
+python3 tools/review_game_frames.py control-frames-wildrift.zip --out vision-review.json
+```
+
+El programa verifica firmas, dimensiones y checksums PNG, limita la cantidad y tamaño de archivos y **no extrae imágenes ni las envía a internet**. Devuelve un manifiesto JSON con hashes, orientación y campos de identificación inicialmente `unverified`. Se rechazan nombres de ZIP inseguros.
+
+**Importante:** el programa **no reconoce campeones, menú o acciones**; esos campos requieren inspeccionar y validar ejemplos visuales de Wild Rift. Tampoco demuestra por sí solo que los PNG provengan del juego.
+
+La compilación de GitHub Actions ejecuta las pruebas Java de selección y las pruebas Python del revisor, sin usar imágenes privadas. La prueba en un teléfono sigue pendiente hasta disponer de la nueva APK. No publicar ZIPs con chats, nombres o datos privados en un repositorio.
