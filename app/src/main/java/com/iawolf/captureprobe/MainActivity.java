@@ -95,10 +95,8 @@ public class MainActivity extends Activity {
   HorizontalScrollView hs=new HorizontalScrollView(this);
   historyView=new LinearLayout(this);historyView.setOrientation(LinearLayout.HORIZONTAL);
   hs.addView(historyView);content.addView(hs);
-  chooseVoiceButton=new Button(this);chooseVoiceButton.setText("Voces instaladas en tu dispositivo");content.addView(chooseVoiceButton);
-  chooseVoiceButton.setOnClickListener(v->showVoiceChooser());
-  Button downloadVoices=new Button(this);downloadVoices.setText("Voces para descargar");content.addView(downloadVoices);
-  downloadVoices.setOnClickListener(v->showDownloadOptions());
+  chooseVoiceButton=new Button(this);chooseVoiceButton.setText("Elegir voz de CONTROL");content.addView(chooseVoiceButton);
+  chooseVoiceButton.setOnClickListener(v->showVoiceSourceChooser());
   voiceButton=new Button(this);voiceButton.setText("Probar ALTAVOZ / voz sintetizada (no micrófono)");content.addView(voiceButton);
   voiceButton.setEnabled(false);
   voiceButton.setOnClickListener(v->speakTest());
@@ -186,13 +184,29 @@ public class MainActivity extends Activity {
    })
    .setNegativeButton("Cancelar",null).show();
  }
+ private void showVoiceSourceChooser(){
+  String[] sources={"Voces del dispositivo — elegir una instalada",
+                    "Voces propias de CONTROL (Piper) — próximamente"};
+  new android.app.AlertDialog.Builder(this)
+   .setTitle("Voz de CONTROL")
+   .setItems(sources,(dialog,which)->{
+    if(which==0)showVoiceChooser();
+    else showPiperVoiceInfo();
+   })
+   .setNegativeButton("Cancelar",null).show();
+ }
+ private void showPiperVoiceInfo(){
+  new android.app.AlertDialog.Builder(this)
+   .setTitle("Voces propias de CONTROL · Piper")
+   .setMessage("El motor de voces Piper para Android todavía no está integrado. Cuando haya voces comprobadas y compatibles aparecerán acá para elegir, sin instalar otras apps. Por ahora CONTROL continúa usando una voz del dispositivo.")
+   .setPositiveButton("Entendido",null).show();
+ }
  private java.util.ArrayList<android.speech.tts.Voice> compatibleVoices(){
   java.util.ArrayList<android.speech.tts.Voice> result=new java.util.ArrayList<>();
   if(voice==null || voice.getVoices()==null)return result;
   for(android.speech.tts.Voice item:voice.getVoices()){
    Locale loc=item.getLocale();
-   if(loc==null || item.isNetworkConnectionRequired() ||
-      !"es".equalsIgnoreCase(loc.getLanguage()))continue;
+   if(loc==null || item.isNetworkConnectionRequired())continue;
    result.add(item);
   }
   java.util.Collections.sort(result,(a,b)->{
@@ -220,10 +234,9 @@ public class MainActivity extends Activity {
   java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices();
   if(options.isEmpty()){
    new android.app.AlertDialog.Builder(this)
-    .setTitle("Sin voces locales disponibles")
-    .setMessage("No encontramos voces locales enumeradas por el motor actual. Podés abrir las opciones para descargar voces. La escucha y captura siguen disponibles.")
-    .setPositiveButton("Voces para descargar", (d,w)->showDownloadOptions())
-    .setNegativeButton("Seguir sin voz",null).show();
+    .setTitle("Sin voces disponibles en el dispositivo")
+    .setMessage("El motor de Android no informó voces instaladas sin conexión. Revisá las voces disponibles en Ajustes de síntesis de voz del dispositivo.")
+    .setPositiveButton("Entendido",null).show();
    return;
   }
   String[] names=new String[options.size()];
@@ -233,7 +246,7 @@ public class MainActivity extends Activity {
       (v.isNetworkConnectionRequired()?" (requiere internet)":" (sin conexión)");
   }
   new android.app.AlertDialog.Builder(this)
-.setTitle("Voces locales en español (Argentina primero)")
+.setTitle("Voces del dispositivo (sin conexión)")
    .setSingleChoiceItems(names,-1,(dialog,which)->{
     android.speech.tts.Voice candidate=options.get(which);
     if(voice.setVoice(candidate)==TextToSpeech.SUCCESS){
@@ -244,22 +257,7 @@ public class MainActivity extends Activity {
     }else Toast.makeText(this,"No se pudo seleccionar esta voz",Toast.LENGTH_SHORT).show();
     dialog.dismiss();
    })
-   .setNeutralButton("Voces para descargar",(d,w)->showDownloadOptions())
    .setNegativeButton("Cancelar",null).show();
- }
- private void showDownloadOptions(){
-  new android.app.AlertDialog.Builder(this)
-   .setTitle("Voces para descargar")
-   .setMessage("Podés abrir el instalador del motor de voz Android para buscar y descargar voces. La descarga ocurre fuera de CONTROL y depende del catálogo del proveedor. La descarga de modelos propios dentro de CONTROL todavía no está implementada.")
-   .setPositiveButton("Abrir catálogo de Android",(dialog,which)->openVoiceInstaller())
-   .setNegativeButton("Cancelar",null).show();
- }
- private void openVoiceInstaller(){
-  try{startActivity(new Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA));}
-  catch(Exception ex){
-   try{startActivity(new Intent("com.android.settings.TTS_SETTINGS"));}
-   catch(Exception ignored){Toast.makeText(this,"Buscá Ajustes de texto a voz en Android",Toast.LENGTH_LONG).show();}
-  }
  }
  private void speakTest(){
   if(!voiceReady||voice==null){Toast.makeText(this,"Voz aún no disponible",Toast.LENGTH_SHORT).show();return;}
