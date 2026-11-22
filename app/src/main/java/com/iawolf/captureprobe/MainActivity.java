@@ -193,8 +193,14 @@ public class MainActivity extends Activity {
    .setNegativeButton("Cancelar",null).show();
  }
  private void showVoiceSourceChooser(){
-  // Lab 6 deliberately hides Piper: Sherpa is not packaged in this branch.
-  showVoiceChooser();
+  // No paid cloud TTS API: list only voices exposed by the user's installed Android TTS engine.
+  new android.app.AlertDialog.Builder(this)
+   .setTitle("Elegir la voz de CONTROL")
+   .setItems(new String[]{
+      "Voces del dispositivo sin conexión",
+      "Todas las voces del dispositivo, incluso las que requieren internet"
+   },(dialog,which)->showVoiceChooser(which==1))
+   .setNegativeButton("Cancelar",null).show();
  }
  private void showPiperVoiceInfo(){
   new android.app.AlertDialog.Builder(this)
@@ -208,12 +214,12 @@ public class MainActivity extends Activity {
    })
    .setNegativeButton("Cancelar",null).show();
  }
- private java.util.ArrayList<android.speech.tts.Voice> compatibleVoices(){
+ private java.util.ArrayList<android.speech.tts.Voice> compatibleVoices(boolean allowNetwork){
   java.util.ArrayList<android.speech.tts.Voice> result=new java.util.ArrayList<>();
   if(voice==null || voice.getVoices()==null)return result;
   for(android.speech.tts.Voice item:voice.getVoices()){
    Locale loc=item.getLocale();
-   if(loc==null || item.isNetworkConnectionRequired() || !"es".equalsIgnoreCase(loc.getLanguage()))continue;
+   if(loc==null || (item.isNetworkConnectionRequired() && !allowNetwork) || !"es".equalsIgnoreCase(loc.getLanguage()))continue;
    result.add(item);
   }
   java.util.Collections.sort(result,(a,b)->{
@@ -229,20 +235,24 @@ public class MainActivity extends Activity {
     "US".equalsIgnoreCase(country)?1:0;
  }
  private boolean selectPreferredVoice(){
-  java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices();
+  boolean allowNetwork=getSharedPreferences("control_voice_settings",MODE_PRIVATE)
+       .getBoolean("allow_network_tts",false);
+   java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices(allowNetwork);
   String saved=getSharedPreferences("control_voice_settings",MODE_PRIVATE).getString("voice_name","");
   android.speech.tts.Voice chosen=null;
   for(android.speech.tts.Voice candidate:options)if(candidate.getName().equals(saved)){chosen=candidate;break;}
   if(chosen==null && !options.isEmpty())chosen=options.get(0);
   return chosen!=null && voice.setVoice(chosen)==TextToSpeech.SUCCESS;
  }
- private void showVoiceChooser(){
+ private void showVoiceChooser(boolean allowNetwork){
   if(voice==null){Toast.makeText(this,"Motor de voz todavía no inicializado",Toast.LENGTH_SHORT).show();return;}
-  java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices();
+  java.util.ArrayList<android.speech.tts.Voice> options=compatibleVoices(allowNetwork);
   if(options.isEmpty()){
    new android.app.AlertDialog.Builder(this)
     .setTitle("Sin voces disponibles en el dispositivo")
-    .setMessage("El motor de Android no informó voces instaladas sin conexión. Revisá las voces disponibles en Ajustes de síntesis de voz del dispositivo.")
+    .setMessage(allowNetwork?
+      "El motor de voz configurado en Android no ofrece voces en español adicionales. Revisá las opciones de voces de Google o Samsung en Ajustes.":
+      "El motor de Android no informó voces en español sin conexión. Revisá las voces instaladas en Ajustes de síntesis de voz.")
     .setPositiveButton("Entendido",null).show();
    return;
   }
@@ -253,12 +263,13 @@ public class MainActivity extends Activity {
       (v.isNetworkConnectionRequired()?" (requiere internet)":" (sin conexión)");
   }
   new android.app.AlertDialog.Builder(this)
-.setTitle("Voces del dispositivo (sin conexión)")
+.setTitle(allowNetwork?"Voces en español del dispositivo (locales y de red)":"Voces en español sin conexión")
    .setSingleChoiceItems(names,-1,(dialog,which)->{
     android.speech.tts.Voice candidate=options.get(which);
     if(voice.setVoice(candidate)==TextToSpeech.SUCCESS){
      getSharedPreferences("control_voice_settings",MODE_PRIVATE).edit()
-      .putString("voice_source","device").putString("voice_name",candidate.getName()).apply();
+      .putString("voice_source","device").putString("voice_name",candidate.getName())
+       .putBoolean("allow_network_tts",candidate.isNetworkConnectionRequired()).apply();
      if(CaptureService.active)
        startService(new Intent(this,CaptureService.class).setAction("CHANGE_VOICE"));
      voiceReady=true;voiceButton.setEnabled(true);
