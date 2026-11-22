@@ -31,6 +31,17 @@ class MetricsTests(unittest.TestCase):
         s=bench.evaluate([record(video_id="fiora_b")],[record(video_id="fiora_b",confidence=".98")],SPLIT)["splits"]
         self.assertEqual(s["held_out"]["true_positive"],1)
         self.assertEqual(s["development"]["true_positive"],0)
+    def test_unreviewed_timestamps_are_not_false_positives(self):
+        labels=[record()]
+        predictions=[record(confidence=".95"), record(time_s="200", confidence=".85")]
+        scored=bench.evaluate(labels,predictions,SPLIT)["splits"]["development"]
+        self.assertEqual((scored["true_positive"], scored["false_positive"]), (1,0))
+        self.assertEqual(scored["unscored_predictions_outside_reviewed_frames"],1)
+    def test_prediction_on_reviewed_ally_frame_counts_false_positive(self):
+        labels=[record(team="ALLY")]
+        predictions=[record(confidence=".9")]
+        scored=bench.evaluate(labels,predictions,SPLIT)["splits"]["development"]
+        self.assertEqual((scored["true_positive"],scored["false_positive"]),(0,1))
     def test_no_labels_no_metrics(self):
         self.assertEqual(bench.evaluate(None,[],SPLIT)["status"],"NOT_MEASURED")
     def test_unknown_source_rejected(self):
