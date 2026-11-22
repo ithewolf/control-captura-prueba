@@ -33,6 +33,7 @@ public class MainActivity extends Activity {
    "\nErrores de escucha: "+CaptureService.speechErrors+
    "\nModo seleccionado: "+getSharedPreferences("control_mode",MODE_PRIVATE).getString("mode","coach")+" (diagnóstico, no entrenador completo)"+
    "\nÚltimo texto escuchado: "+CaptureService.lastHeard+
+   "\nPrueba sin decir CONTROL: "+(getSharedPreferences("control_voice_diag",MODE_PRIVATE).getBoolean("free_listen",false)?"ACTIVA":"desactivada")+
    "\nActivación de voz: "+CaptureService.wakeStatus+
    "\nRespuesta local: "+CaptureService.lastReply+
    "\nIntentos de escucha: "+CaptureService.listenAttempts+
@@ -130,6 +131,20 @@ public class MainActivity extends Activity {
    }
    startService(new Intent(this,CaptureService.class).setAction("TEST_REPLY"));
   });
+  Button diagnosticFree=new Button(this);
+  diagnosticFree.setText("Prueba de micrófono SIN decir CONTROL: activar/desactivar");
+  content.addView(diagnosticFree);
+  diagnosticFree.setOnClickListener(v->{
+    boolean active=getSharedPreferences("control_voice_diag",MODE_PRIVATE)
+       .getBoolean("free_listen",false);
+    boolean next=!active;
+    getSharedPreferences("control_voice_diag",MODE_PRIVATE).edit()
+       .putBoolean("free_listen",next).apply();
+    new android.app.AlertDialog.Builder(this)
+      .setTitle(next?"Prueba sin palabra de activación ACTIVA":"Prueba desactivada")
+      .setMessage(next?"Solo para diagnóstico: durante una sesión activa CONTROL intentará contestar a frases reconocidas de tres palabras o más, aunque no digas CONTROL. Puede activarse con sonidos del ambiente, así que probá con el juego cerrado y desactivala al terminar.":"CONTROL vuelve a exigir su palabra de activación.")
+      .setPositiveButton("Entendido",null).show();
+  });
   Button start=new Button(this);start.setText("Iniciar sesión larga: pantalla + micrófono");content.addView(start);
   Button captureOnly=new Button(this);
   captureOnly.setText("Diagnóstico: capturar solo pantalla (sin micrófono)");
@@ -155,22 +170,19 @@ public class MainActivity extends Activity {
   voice.speak("Hola, Wolf. ¿Cómo estás? ¿Qué tenés pensado hacer hoy? ¿Querés que te acompañe en modo coach o en modo compañero?",TextToSpeech.QUEUE_FLUSH,null,"welcome_mode");
  }
  private void showModeChooser(){
-  final String[] modes={"🧠 Modo Coach — entrenar con consejos concretos","😈 Modo Compañero — jugar, charlar y hacer cargadas"};
+  final String[] modes={"Modo Coach (diagnóstico)","Modo Compañero (diagnóstico)"};
+  String current=getSharedPreferences("control_mode",MODE_PRIVATE).getString("mode","coach");
+  int selected="companero".equals(current)?1:0;
   new android.app.AlertDialog.Builder(this)
-   .setTitle("Hola, ¿cómo estás? ¿Qué tenés pensado hacer hoy?")
-   .setMessage("¿Querés que te acompañe en modo coach o en modo compañero? Elegís en cada inicio.")
-   .setItems(modes,(dialog,index)->{
-    selectedMode=index==0?"coach":"companero";
-    getSharedPreferences("control_mode",MODE_PRIVATE).edit().putString("mode",selectedMode).apply();
-    new android.app.AlertDialog.Builder(this)
-     .setTitle(index==0?"Modo Coach: audio recomendado":"Modo Compañero: audio recomendado")
-     .setMessage(index==0
-      ? "Te recomiendo usar auriculares para escuchar mejor las indicaciones y evitar que el audio del juego entre al micrófono. Si querés entrenar con mejor reconocimiento de voz, también podés bajar la música y los diálogos de campeones desde los ajustes de Wild Rift. Conservá efectos, avisos y señales del combate. Todo es opcional y CONTROL no cambiará el juego."
-      : "Para jugar y charlar podés conservar música, diálogos y efectos. Para que entienda mejor tus órdenes, usar auriculares ayuda a que los sonidos del juego no entren al micrófono. Si querés, también podés bajar los diálogos de campeones. No es obligatorio.")
-     .setPositiveButton("Entendido",null)
-     .setNegativeButton("Dejar audio como está",null).show();
+   .setTitle("Elegí el modo de CONTROL")
+   // Do NOT combine setMessage with setSingleChoiceItems: message hides list in Android.
+   .setSingleChoiceItems(modes,selected,(dialog,index)->{
+     selectedMode=index==0?"coach":"companero";
+     getSharedPreferences("control_mode",MODE_PRIVATE).edit().putString("mode",selectedMode).apply();
+     Toast.makeText(this,"Modo "+(index==0?"Coach":"Compañero")+" seleccionado",Toast.LENGTH_LONG).show();
+     dialog.dismiss();
    })
-   .setNegativeButton("Decidir después",null).show();
+   .setNegativeButton("Cancelar",null).show();
  }
  private java.util.ArrayList<android.speech.tts.Voice> compatibleVoices(){
   java.util.ArrayList<android.speech.tts.Voice> result=new java.util.ArrayList<>();
