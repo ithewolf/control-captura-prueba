@@ -7,6 +7,7 @@ on:
       - 'build.gradle'
       - 'settings.gradle'
       - 'tests/**'
+      - 'tools/**'
       - '.github/workflows/lab6-ia-local.yml'
   workflow_dispatch:
 permissions:
