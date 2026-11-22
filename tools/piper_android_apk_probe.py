@@ -13,9 +13,18 @@ with zipfile.ZipFile(apk) as z:
     if not sherpa:raise RuntimeError("Sherpa native runtime absent from APK")
     if "arm64-v8a" not in abis or "armeabi-v7a" not in abis:
         raise RuntimeError("Missing ARM32/ARM64 support")
+    voice_base="assets/piper/vits-piper-es_MX-ald-medium/"
+    voice_assets=[n for n in z.namelist() if n.startswith(voice_base)]
+    required=[voice_base+"es_MX-ald-medium.onnx",voice_base+"tokens.txt"]
+    if any(x not in voice_assets for x in required):
+        raise RuntimeError("Missing Piper model or tokens within actual APK")
+    if not any(x.startswith(voice_base+"espeak-ng-data/") for x in voice_assets):
+        raise RuntimeError("Missing pronunciation data within actual APK")
     report={"apk_bytes":apk.stat().st_size,"abis":abis,
+       "voice_model_bytes":sum(z.getinfo(n).file_size for n in voice_assets),
+       "voice_assets_count":len(voice_assets),
        "sherpa_native_binaries":sherpa,
-       "status":"Piper-compatible native runtime packaged; no Piper model or UI integration",
+       "status":"Piper-compatible runtime AND voice assets packaged; TTS still NOT wired to Android service",
        "not_validated":["Actual speech playback","Vosk coexistence",
        "memory usage","gameplay FPS","device startup"]}
 p=pathlib.Path("build/piper-android-packaging/report.json")
