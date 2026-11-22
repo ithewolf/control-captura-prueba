@@ -53,9 +53,10 @@ public final class AvContext {
   if (phrase == null) return null;
   String text = java.text.Normalizer.normalize(phrase, java.text.Normalizer.Form.NFD)
     .replaceAll("\\p{M}+", "").toLowerCase(Locale.ROOT);
-  // Exact wake word at the beginning (no background chatter or substrings).
-  // A wake word alone is not enough: require a following command.
-  if (!text.matches("^\\s*control\\b[\\s,.:;!?-]+.+")) return null;
+  // Vosk may place greetings before the wake word; accept the wake word
+  // at any whole-word position but never arbitrary background chatter.
+  // For poor Spanish transcription, "con trol" is an explicit alias.
+  if (!WakeGate.isActivated(text)) return null;
   if (!s.fresh)
    return "Wolf, te escuché, pero no tengo una imagen reciente del juego. No voy a inventar lo que está pasando.";
   if (s.dark)
