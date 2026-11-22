@@ -186,7 +186,7 @@ public class MainActivity extends Activity {
  }
  private void showVoiceSourceChooser(){
   String[] sources={"Voces del dispositivo — elegir una instalada",
-                    "Voces propias de CONTROL (Piper) — próximamente"};
+                    "Piper Ald — voz masculina de PRUEBA (español mexicano)"};
   new android.app.AlertDialog.Builder(this)
    .setTitle("Voz de CONTROL")
    .setItems(sources,(dialog,which)->{
@@ -197,9 +197,15 @@ public class MainActivity extends Activity {
  }
  private void showPiperVoiceInfo(){
   new android.app.AlertDialog.Builder(this)
-   .setTitle("Voces propias de CONTROL · Piper")
-   .setMessage("El motor de voces Piper para Android todavía no está integrado. Cuando haya voces comprobadas y compatibles aparecerán acá para elegir, sin instalar otras apps. Por ahora CONTROL continúa usando una voz del dispositivo.")
-   .setPositiveButton("Entendido",null).show();
+   .setTitle("Piper: laboratorio Android")
+   .setMessage("Esta es la voz MASCULINA provisional Ald (español mexicano), no la voz argentina definitiva. La prueba consume más memoria y puede tardar en empezar a hablar. Solo usala en sesiones cortas de diagnóstico, no jugando Wild Rift. Si falla, CONTROL intentará responder con una voz del dispositivo. ¿Activar Piper para las respuestas de CONTROL?")
+   .setPositiveButton("Activar Piper (prueba)",(dialog,which)->{
+    getSharedPreferences("control_voice_settings",MODE_PRIVATE).edit()
+       .putString("voice_source","piper").apply();
+    if(CaptureService.active)startService(new Intent(this,CaptureService.class).setAction("CHANGE_VOICE"));
+    Toast.makeText(this,"Piper experimental seleccionado para la próxima respuesta",Toast.LENGTH_LONG).show();
+   })
+   .setNegativeButton("Cancelar",null).show();
  }
  private java.util.ArrayList<android.speech.tts.Voice> compatibleVoices(){
   java.util.ArrayList<android.speech.tts.Voice> result=new java.util.ArrayList<>();
@@ -250,7 +256,8 @@ public class MainActivity extends Activity {
    .setSingleChoiceItems(names,-1,(dialog,which)->{
     android.speech.tts.Voice candidate=options.get(which);
     if(voice.setVoice(candidate)==TextToSpeech.SUCCESS){
-     getSharedPreferences("control_voice_settings",MODE_PRIVATE).edit().putString("voice_name",candidate.getName()).apply();
+     getSharedPreferences("control_voice_settings",MODE_PRIVATE).edit()
+      .putString("voice_source","device").putString("voice_name",candidate.getName()).apply();
      if(CaptureService.active)
        startService(new Intent(this,CaptureService.class).setAction("CHANGE_VOICE"));
      voiceReady=true;voiceButton.setEnabled(true);
