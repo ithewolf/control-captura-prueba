@@ -33,6 +33,7 @@ public class MainActivity extends Activity {
    "\nErrores de escucha: "+CaptureService.speechErrors+
    "\nModo seleccionado: "+getSharedPreferences("control_mode",MODE_PRIVATE).getString("mode","coach")+" (diagnóstico, no entrenador completo)"+
    "\nÚltimo texto escuchado: "+CaptureService.lastHeard+
+   "\nActivación de voz: "+CaptureService.wakeStatus+
    "\nRespuesta local: "+CaptureService.lastReply+
    "\nIntentos de escucha: "+CaptureService.listenAttempts+
    " · Frases reconocidas: "+CaptureService.recognizedPhrases+
