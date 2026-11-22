@@ -41,6 +41,7 @@ jobs:
           java -cp build/smoke com.iawolf.captureprobe.FrameSamplerSmokeTest
       - name: Build isolated debug APK
         run: |
+          set -o pipefail
           gradle --no-daemon --stacktrace :app:assembleDebug 2>&1 | tee lite-build.log
           test -s app/build/outputs/apk/debug/app-debug.apk
       - name: Inspect real artifact and enforce 200 MiB trial ceiling
