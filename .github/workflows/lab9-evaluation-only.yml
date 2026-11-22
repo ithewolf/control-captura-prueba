@@ -7,6 +7,8 @@ on:
       - 'app/src/main/java/com/iawolf/captureprobe/EnemyObservationGate.java'
       - 'tests/TacticalDecisionEngineTest.java'
       - 'tests/EnemyObservationGateTest.java'
+      - 'tests/EnemyCoachPipelineTest.java'
+      - 'app/src/main/java/com/iawolf/captureprobe/EnemyCoachPipeline.java'
       - 'tools/lab9*'
       - 'tools/tests/test_lab9*'
       - '.github/workflows/lab9-evaluation-only.yml'
@@ -30,6 +32,8 @@ jobs:
           java -cp /tmp/lab9 TacticalDecisionEngineTest
           javac -encoding UTF-8 -d /tmp/lab9 app/src/main/java/com/iawolf/captureprobe/EnemyObservationGate.java tests/EnemyObservationGateTest.java
           java -cp /tmp/lab9 EnemyObservationGateTest
+          javac -encoding UTF-8 -cp /tmp/lab9 -d /tmp/lab9 app/src/main/java/com/iawolf/captureprobe/EnemyCoachPipeline.java tests/EnemyCoachPipelineTest.java
+          java -cp /tmp/lab9 EnemyCoachPipelineTest
       - name: Test video evaluation harness and data separation
         run: |
           python3 -m compileall -q tools/lab9_video_benchmark.py tools/tests/test_lab9_video_benchmark.py
