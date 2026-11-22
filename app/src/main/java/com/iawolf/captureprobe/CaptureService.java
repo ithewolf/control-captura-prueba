@@ -40,6 +40,8 @@ public class CaptureService extends Service {
  public static volatile boolean active=false;
  public static volatile String status="detenido",error="";
  public static volatile String audioStatus="sin iniciar",lastHeard="",lastReply="";
+ public static volatile String piperStatus="sin probar";
+ public static volatile long piperLastMs=-1;
  public static volatile String wakeStatus="sin evaluar";
  public static volatile String voskPartial="sin resultados parciales";
  public static volatile long voskPartialUpdates=0;
@@ -86,6 +88,7 @@ public class CaptureService extends Service {
   .putInt("width",width).putInt("height",height)
   .putString("status",status).putString("error",error)
   .putString("audioStatus",audioStatus).putString("ttsStatus",ttsStatus).putString("ttsVoice",ttsVoice)
+  .putString("piperStatus",piperStatus).putLong("piperLastMs",piperLastMs)
   .putInt("speechErrors",speechErrors).putInt("ttsStarted",ttsStarted).putInt("ttsCompleted",ttsCompleted).putInt("ttsFailed",ttsFailed)
   .putLong("updated",System.currentTimeMillis()).apply();}
 
@@ -117,7 +120,7 @@ public class CaptureService extends Service {
   active=true;stopping=false;frames=changes=darkFrames=callbacks=received=0;
   nullImages=staleImages=resizes=discarded=0;lastEvent="Inicio";status="iniciando";error="";seen=false;lastAt=0;
   previewFrame=null;previewAt=0;clearRecentFrames();
-  audioStatus="iniciando";lastHeard="";lastReply="";wakeStatus="sin evaluar";voskPartial="sin resultados parciales";voskPartialUpdates=0;ttsStatus="iniciando";ttsVoice="sin seleccionar";speechErrors=ttsStarted=ttsCompleted=ttsFailed=0;
+  audioStatus="iniciando";lastHeard="";lastReply="";piperStatus="sin probar";piperLastMs=-1;wakeStatus="sin evaluar";voskPartial="sin resultados parciales";voskPartialUpdates=0;ttsStatus="iniciando";ttsVoice="sin seleccionar";speechErrors=ttsStarted=ttsCompleted=ttsFailed=0;
   listenAttempts=recognizedPhrases=framesDuringLastListen=voiceRestarts=0;
   sessionStartedAt=SystemClock.elapsedRealtime();AvContext.reset(sessionStartedAt);lastAudioRecoveryMs=-1;
   simultaneousAvObserved=false;hudZoneTelemetry="sin datos";
