@@ -110,7 +110,8 @@ public class CaptureService extends Service {
   sessionStartedAt=SystemClock.elapsedRealtime();AvContext.reset(sessionStartedAt);lastAudioRecoveryMs=-1;
   simultaneousAvObserved=false;hudZoneTelemetry="sin datos";
   try{
-   boolean audioAllowed=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
+   boolean captureOnly=intent.getBooleanExtra("captureOnly",false);
+   boolean audioAllowed=!captureOnly&&checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
    int fgType=ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION;
    if(audioAllowed)fgType|=ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE;
    startForeground(1,notice(),fgType);
@@ -140,7 +141,7 @@ public class CaptureService extends Service {
     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,reader.getSurface(),null,images);
    status="capturando";latestFrameAt=SystemClock.elapsedRealtime();
    if(audioAllowed){voiceBridge=new VoskVoiceBridge(this);voiceBridge.start();}
-   else audioStatus="permiso de micrófono pendiente";
+   else audioStatus=captureOnly?"diagnóstico solo pantalla (micrófono desactivado)":"permiso de micrófono pendiente";
    main.postDelayed(monitor,15000);
    main.postDelayed(()->{if(active&&frames==0){error="No llegaron cuadros en 12 segundos";status="sin cuadros";}},12000);
   }catch(Exception e){error=e.toString();status="error";saveSnapshot();stopNow();}
