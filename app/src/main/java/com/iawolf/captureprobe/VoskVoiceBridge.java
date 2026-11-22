@@ -150,15 +150,27 @@ public final class VoskVoiceBridge implements RecognitionListener {
    CaptureService.recognizedPhrases++;
    CaptureService.lastHeard=heard;
    boolean wake=WakeGate.isActivated(heard);
-   CaptureService.wakeStatus=wake?"Comando activado":"Texto recibido, pero sin palabra CONTROL reconocible";
+   boolean freeDiagnostic=context.getSharedPreferences("control_voice_diag",Context.MODE_PRIVATE)
+      .getBoolean("free_listen",false);
+   // A temporary opt-in test, not the normal voice assistant. Restrict to
+   // nontrivial phrases; background TV/game speech can still trigger this mode.
+   String[] words=heard.trim().split("\\s+");
+   boolean freeAccept=freeDiagnostic && words.length>=3 && words.length<=12;
+   CaptureService.wakeStatus=wake?"Comando CONTROL reconocido":
+      (freeAccept?"Prueba temporal: frase aceptada sin CONTROL":
+       "Texto transcrito sin comando reconocible");
    long during=Math.max(0L,CaptureService.received-listenFrameBaseline);
    CaptureService.framesDuringLastListen=during;
    if(during>0)CaptureService.simultaneousAvObserved=true;
    AvContext.Snapshot visual=AvContext.snapshot(CaptureService.sessionStartedAt,SystemClock.elapsedRealtime());
    String mode=context.getSharedPreferences("control_mode",Context.MODE_PRIVATE).getString("mode","coach");
    String reply=AvContext.respond(heard,visual,mode);
+   if(reply==null && freeAccept)
+     reply="companero".equals(mode)
+        ?"Wolf, modo compañero de prueba. Recibí una frase, aunque Vosk todavía puede equivocarse."
+        :"Wolf, modo coach de prueba. Recibí una frase sin la palabra CONTROL; todavía no doy consejos tácticos.";
    if(reply!=null){CaptureService.lastReply=reply;say(reply);}
-   else CaptureService.wakeStatus="Texto recibido; sin comando válido";
+   else CaptureService.wakeStatus="Texto transcrito, pero no pasó el filtro de activación";
   });
  }
 
