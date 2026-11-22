@@ -2,6 +2,8 @@ package com.iawolf.captureprobe;
 import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.provider.Settings;
+import android.net.Uri;
 import android.content.pm.PackageManager;
 import android.media.projection.MediaProjectionManager;
 import android.media.projection.MediaProjectionConfig;
@@ -20,6 +22,8 @@ public class MainActivity extends Activity {
  private Button chooseVoiceButton;
  private String selectedMode="";
  private boolean welcomeSpoken=false;
+ private boolean openingPermissionCheckDone=false;
+ private static final int OPENING_PERMISSIONS=80;
  private boolean projectionCaptureOnly=false;
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
@@ -274,6 +278,17 @@ public class MainActivity extends Activity {
   }else if(code==79){
    boolean granted=results.length>0&&results[0]==PackageManager.PERMISSION_GRANTED;
    Toast.makeText(this,granted?"Permiso de micrófono concedido":"Micrófono denegado; captura independiente disponible",Toast.LENGTH_LONG).show();
+  }else if(code==OPENING_PERMISSIONS){
+   boolean mic=checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED;
+   boolean notices=Build.VERSION.SDK_INT<33||
+      checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)==PackageManager.PERMISSION_GRANTED;
+   if(!mic||!notices)
+    new android.app.AlertDialog.Builder(this).setTitle("Permisos pendientes")
+     .setMessage("Permisos: micrófono "+(mic?"habilitado":"no autorizado")+
+      ", notificaciones "+(notices?"habilitadas":"no autorizadas")+
+      ". Si Android bloqueó la solicitud, podés habilitarlos en Ajustes. CONTROL permite diagnóstico solo pantalla.")
+     .setPositiveButton("Abrir ajustes",(d,w)->openAppPermissionSettings())
+     .setNegativeButton("Continuar",null).show();
   }
  }
  @Override protected void onActivityResult(int request,int result,Intent data){super.onActivityResult(request,result,data);
@@ -284,6 +299,48 @@ public class MainActivity extends Activity {
     startForegroundService(i);
   }
  }
- @Override protected void onResume(){super.onResume();h.post(refresh);}
+ private void reviewPermissionsOnOpen(){
+  // Run once per Activity creation, not after every system dialog or returning
+  // from MediaProjection; otherwise Android can prompt in a loop.
+  if(openingPermissionCheckDone)return;
+  openingPermissionCheckDone=true;
+  java.util.ArrayList<String> missing=new java.util.ArrayList<>();
+  if(checkSelfPermission(Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)
+   missing.add(Manifest.permission.RECORD_AUDIO);
+  if(Build.VERSION.SDK_INT>=33 &&
+     checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
+   missing.add(Manifest.permission.POST_NOTIFICATIONS);
+  if(missing.isEmpty())return;
+  boolean attemptedBefore=getSharedPreferences("control_permissions",MODE_PRIVATE)
+   .getBoolean("opening_prompt_attempted",false);
+  if(attemptedBefore){
+   boolean blocked=false;
+   for(String permission:missing)
+    if(!shouldShowRequestPermissionRationale(permission)){blocked=true;break;}
+   if(blocked){
+    new android.app.AlertDialog.Builder(this)
+     .setTitle("CONTROL necesita revisar permisos")
+     .setMessage("Faltan permisos para la voz o las notificaciones. Android puede bloquear solicitudes repetidas. Revisalos en Ajustes de la aplicación. Igual podés probar solo la pantalla sin micrófono.")
+     .setPositiveButton("Abrir ajustes",(d,w)->openAppPermissionSettings())
+     .setNegativeButton("Ahora no",null).show();
+    return;
+   }
+  }
+  new android.app.AlertDialog.Builder(this)
+   .setTitle("Permisos de CONTROL")
+   .setMessage("Cada vez que abras CONTROL revisaremos micrófono y notificaciones. Solo solicitaremos los permisos ausentes. Para capturar pantalla Android pedirá otra autorización al iniciar cada sesión.")
+   .setPositiveButton("Solicitar",(d,w)->{
+    getSharedPreferences("control_permissions",MODE_PRIVATE).edit()
+     .putBoolean("opening_prompt_attempted",true).apply();
+    requestPermissions(missing.toArray(new String[0]),OPENING_PERMISSIONS);
+   })
+   .setNegativeButton("Ahora no",null).show();
+ }
+ private void openAppPermissionSettings(){
+  Intent settings=new Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+    Uri.fromParts("package",getPackageName(),null));
+  startActivity(settings);
+ }
+ @Override protected void onResume(){super.onResume();h.post(refresh);reviewPermissionsOnOpen();}
  @Override protected void onPause(){before=CaptureService.frames;h.removeCallbacks(refresh);super.onPause();}
 }
