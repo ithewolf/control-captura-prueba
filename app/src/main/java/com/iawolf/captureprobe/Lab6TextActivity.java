@@ -31,7 +31,7 @@ public final class Lab6TextActivity extends Activity {
  private ConversationCore brain;
  private TextView status,output;
  private EditText input;
- private Button importButton,askButton;
+ private Button importButton,askButton,forgetButton;
 
  @Override public void onCreate(Bundle saved){
   super.onCreate(saved);
@@ -43,6 +43,7 @@ public final class Lab6TextActivity extends Activity {
   importButton=new Button(this);importButton.setText("Importar modelo .litertlm");l.addView(importButton);
   input=new EditText(this);input.setHint("Escribile una pregunta nueva a CONTROL");input.setMinLines(2);l.addView(input);
   askButton=new Button(this);askButton.setText("Generar respuesta con IA local");askButton.setEnabled(false);l.addView(askButton);
+  forgetButton=new Button(this);forgetButton.setText("Borrar memoria local de Coach y Compañero");l.addView(forgetButton);
   ScrollView s=new ScrollView(this);output=new TextView(this);output.setText("Conversacion de prueba:\n");s.addView(output);
   l.addView(s,new LinearLayout.LayoutParams(-1,0,1f));setContentView(l);
   importButton.setOnClickListener(v->{
@@ -52,6 +53,15 @@ public final class Lab6TextActivity extends Activity {
    startActivityForResult(i,PICK);
   });
   askButton.setOnClickListener(v->ask());
+  forgetButton.setOnClickListener(v->{
+    if(!busy.compareAndSet(false,true)) return;
+    worker.execute(()->{
+      if(brain!=null){brain.clear("coach");brain.clear("companero");}
+      boolean deleted=getSharedPreferences("control_lab7_local_history",MODE_PRIVATE).edit().clear().commit();
+      state(deleted?"Memoria local borrada de ambos modos.":"Error al borrar memoria guardada.");
+      busy.set(false);refresh();
+    });
+  });
  }
 
  @Override protected void onActivityResult(int req,int res,Intent data){
@@ -121,8 +131,8 @@ public final class Lab6TextActivity extends Activity {
    busy.set(false);refresh();
   });
  }
- private void state(String text){if(!destroyed)runOnUiThread(()->{status.setText(text);askButton.setEnabled(false);importButton.setEnabled(false);});}
- private void refresh(){if(!destroyed)runOnUiThread(()->{askButton.setEnabled(!busy.get()&&brain!=null);importButton.setEnabled(!busy.get());});}
+ private void state(String text){if(!destroyed)runOnUiThread(()->{status.setText(text);askButton.setEnabled(false);importButton.setEnabled(false);forgetButton.setEnabled(false);});}
+ private void refresh(){if(!destroyed)runOnUiThread(()->{askButton.setEnabled(!busy.get()&&brain!=null);importButton.setEnabled(!busy.get());forgetButton.setEnabled(!busy.get());});}
  @Override protected void onDestroy(){
   destroyed=true;
   worker.execute(()->{if(model!=null)model.close();});worker.shutdown();
