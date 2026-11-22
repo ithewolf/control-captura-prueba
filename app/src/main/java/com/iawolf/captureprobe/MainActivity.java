@@ -28,6 +28,7 @@ public class MainActivity extends Activity {
  private final Runnable refresh=new Runnable(){public void run(){
   label.setText("Estado: "+CaptureService.status+"\nMicrófono/voz: "+CaptureService.audioStatus+
    "\nVoz TTS: "+CaptureService.ttsStatus+" · Motor: "+CaptureService.ttsVoice+
+   "\nPiper (prueba): "+CaptureService.piperStatus+" · Tiempo total: "+(CaptureService.piperLastMs<0?"sin medición":CaptureService.piperLastMs+" ms")+
    "\nTTS iniciados/finalizados/fallidos: "+CaptureService.ttsStarted+"/"+CaptureService.ttsCompleted+"/"+CaptureService.ttsFailed+
    "\nPermiso de micrófono: "+(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED?"concedido":"pendiente/denegado")+
    "\nErrores de escucha: "+CaptureService.speechErrors+
