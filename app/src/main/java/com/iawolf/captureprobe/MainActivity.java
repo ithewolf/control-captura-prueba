@@ -32,6 +32,8 @@ public class MainActivity extends Activity {
    "\nPermiso de micrófono: "+(checkSelfPermission(Manifest.permission.RECORD_AUDIO)==PackageManager.PERMISSION_GRANTED?"concedido":"pendiente/denegado")+
    "\nErrores de escucha: "+CaptureService.speechErrors+
    "\nModo seleccionado: "+getSharedPreferences("control_mode",MODE_PRIVATE).getString("mode","coach")+" (diagnóstico, no entrenador completo)"+
+   "\nVosk parcial (diagnóstico): "+CaptureService.voskPartial+
+   "\nActualizaciones parciales: "+CaptureService.voskPartialUpdates+
    "\nÚltimo texto escuchado: "+CaptureService.lastHeard+
    "\nPrueba sin decir CONTROL: "+(getSharedPreferences("control_voice_diag",MODE_PRIVATE).getBoolean("free_listen",false)?"ACTIVA":"desactivada")+
    "\nActivación de voz: "+CaptureService.wakeStatus+
