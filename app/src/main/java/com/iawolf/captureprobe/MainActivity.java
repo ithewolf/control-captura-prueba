@@ -251,6 +251,8 @@ public class MainActivity extends Activity {
     android.speech.tts.Voice candidate=options.get(which);
     if(voice.setVoice(candidate)==TextToSpeech.SUCCESS){
      getSharedPreferences("control_voice_settings",MODE_PRIVATE).edit().putString("voice_name",candidate.getName()).apply();
+     if(CaptureService.active)
+       startService(new Intent(this,CaptureService.class).setAction("CHANGE_VOICE"));
      voiceReady=true;voiceButton.setEnabled(true);
      voiceButton.setText("Probar altavoz / voz elegida");
      voice.speak("Wolf, soy Control. Esta es mi voz de prueba.",TextToSpeech.QUEUE_FLUSH,null,"voice_preview");
