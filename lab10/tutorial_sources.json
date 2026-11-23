@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "project": "CONTROL Coach",
+  "lab": "lab10",
+  "purpose": "planificar estudio guiado y verificable de material de Wild Rift",
+  "game": "League of Legends: Wild Rift",
+  "language": "es",
+  "priority": "no APK; verificar captura Android antes de integracion",
+  "sources": [
+    {
+      "id": "official-overview",
+      "kind": "official_guide",
+      "title": "Wild Rift: descripcion oficial del juego",
+      "url": "https://wildrift.leagueoflegends.com/es-es/game-overview/",
+      "topic": [
+        "objetivo_nexo",
+        "campeones",
+        "carriles",
+        "jungla",
+        "objetivos"
+      ],
+      "status": "source_found_not_video_analyzed",
+      "version_sensitive": false
+    },
+    {
+      "id": "beginner-video-01",
+      "kind": "third_party_video",
+      "title": "Guia para principiantes #1: campeones, habilidades y lineas",
+      "url": "https://www.youtube.com/watch?v=f_ZTNP8YaZA",
+      "topic": [
+        "campeones",
+        "habilidades",
+        "carriles"
+      ],
+      "status": "metadata_verified_content_not_reviewed",
+      "version_sensitive": true
+    },
+    {
+      "id": "jungle-video-2026",
+      "kind": "third_party_video",
+      "title": "Guia facil de jungla para principiantes 2026",
+      "url": "https://www.youtube.com/watch?v=ePAC_bqSwSg",
+      "topic": [
+        "jungla",
+        "ganks",
+        "objetivos"
+      ],
+      "status": "metadata_verified_content_not_reviewed",
+      "version_sensitive": true
+    },
+    {
+      "id": "riot-patch-7-3",
+      "kind": "official_patch",
+      "title": "Notas oficiales de Wild Rift 7.3",
+      "url": "https://wildrift.leagueoflegends.com/es-es/news/game-updates/wild-rift-patch-notes-7-3/",
+      "topic": [
+        "baron",
+        "dragones",
+        "jungla",
+        "valores_version"
+      ],
+      "status": "official_reference_identified",
+      "version_sensitive": true
+    },
+    {
+      "id": "riot-7-3f",
+      "kind": "official_patch",
+      "title": "Wild Rift version 7.3f (noviembre 2026)",
+      "url": "https://wildrift.leagueoflegends.com/en-us/",
+      "topic": [
+        "cambios_recientes"
+      ],
+      "status": "official_patch_listed_details_to_verify",
+      "version_sensitive": true
+    }
+  ],
+  "review_rules": {
+    "do_not_claim_video_watched": true,
+    "do_not_infer_champion_labels_from_video_title": true,
+    "no_download_or_embed_third_party_video_without_rights": true,
+    "video_content_requires_authorized_transcript_or_frames": true,
+    "record_patch_version": true,
+    "human_review_before_promoting_rules": true,
+    "hold_out_gameplay_evaluation": true
+  },
+  "modules": [
+    {
+      "id": "M01",
+      "topic": "HUD, campeones aliados enemigos y subditos",
+      "evidence": "3 capturas corregidas por Wolf",
+      "status": "human_labels_in_chat_not_mounted_into_dataset"
+    },
+    {
+      "id": "M02",
+      "topic": "mapa carriles y minimapa",
+      "status": "curriculum_only"
+    },
+    {
+      "id": "M03",
+      "topic": "objetivos jungla dragon baron castigo",
+      "status": "curriculum_only"
+    },
+    {
+      "id": "M04",
+      "topic": "habilidades controles enfriamientos",
+      "status": "curriculum_only"
+    },
+    {
+      "id": "M05",
+      "topic": "decisiones tacticas A/B/C y memoria temporal",
+      "status": "28 reglas conceptuales pendientes de pruebas"
+    }
+  ]
+}
