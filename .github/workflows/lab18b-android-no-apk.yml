@@ -1,0 +1,31 @@
+name: CONTROL Lab18B Android local model (NO APK)
+on:
+  push:
+    branches: [lab18b-android-local-brain-20261123]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  interface-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test ADB contract and conservative shared evaluator
+        run: python3 -m unittest tools.test_brain_comparison_eval tools.test_lab18b_android -v
+      - name: Publish no-device baseline, never claim Android inference
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.brain_comparison_eval import audit
+          q=json.loads(Path('lab17/open_response_20_questions.json').read_text())['questions']
+          Path('lab18b_no_device.json').write_text(json.dumps({
+            'architecture':'B_ON_DEVICE_ANDROID','probe':'ADB_DEVICE_UNAVAILABLE',
+            'evaluation':audit([{'id':x['id'],'answer':None} for x in q])},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: control-lab18b-no-android-baseline
+          path: lab18b_no_device.json
+          retention-days: 7
