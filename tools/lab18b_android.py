@@ -7,7 +7,10 @@ import argparse,json,subprocess,time,shlex
 from pathlib import Path
 from tools.brain_comparison_eval import audit
 def run_cmd(command,timeout=15):
-    try:\n        return subprocess.run(command,capture_output=True,text=True,timeout=timeout,check=False)\n    except (FileNotFoundError,subprocess.TimeoutExpired):\n        return subprocess.CompletedProcess(command,127,stdout='',stderr='ADB_MISSING_OR_TIMEOUT')
+    try:
+        return subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=False)
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return subprocess.CompletedProcess(command, 127, stdout='', stderr='ADB_MISSING_OR_TIMEOUT')
 def check_device(binary,model):
     state=run_cmd(["adb","get-state"])
     if state.returncode!=0 or state.stdout.strip()!="device":
