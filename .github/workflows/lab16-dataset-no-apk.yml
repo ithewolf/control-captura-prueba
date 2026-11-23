@@ -1,0 +1,29 @@
+name: CONTROL Lab16 dataset gate (NO APK)
+on:
+  push:
+    branches: [lab16-actual-frame-annotation-gate-20261123]
+    paths:
+      - 'lab16/**'
+      - 'tools/lab16_dataset_audit.py'
+      - 'tools/test_lab16_dataset_audit.py'
+      - '.github/workflows/lab16-dataset-no-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  verify-annotation-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify independent video splits and reviewed annotations
+        run: python3 -m unittest tools.test_lab16_dataset_audit -v
+      - name: Preserve no-real-detector-claims gate
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path('lab16/README.md').read_text()
+          assert 'development-only' in s
+          assert 'NOT YET AVAILABLE' in s
+          print('Only dataset preparation, not champion recognition, was tested.')
+          PY
