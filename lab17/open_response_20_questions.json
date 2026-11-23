@@ -1,0 +1,140 @@
+{
+  "title": "CONTROL Lab17 phase 2 — 20 open-answer scenarios, unadministered",
+  "threshold_precondition": "100-question exam >=80",
+  "status": "BLOCKED_NO_FREE_FORM_RESPONDER",
+  "instructions": "Ask the actual connected CONTROL free-text respondent for an explanation in Spanish without presenting options or answer key; include a plan, evidence, uncertainty, and fallback. Independent reviewer grades 0-5 per item. Do not substitute ChatGPT answers.",
+  "grading": {
+    "per_question_max": 5,
+    "dimensions": [
+      "Decision defensible",
+      "Risk awareness",
+      "Evidence provenance",
+      "Contingency and adaptation",
+      "Uncertainty without fabricated game state"
+    ],
+    "required": 80,
+    "total_possible": 100
+  },
+  "questions": [
+    {
+      "id": "jungla_1",
+      "prompt": "Estás en jungla, ves al jungla rival cerca del objetivo neutral, no ves al mid enemigo y tu Smite no está disponible. ¿Qué harías y por qué?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "jungla_2",
+      "prompt": "Tu botlane pierde prioridad y aparece dragón. Hay dos compañeros con poca vida. Diseñá plan A, B y C según nueva información.",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "jungla_3",
+      "prompt": "Intentás gankear top pero el rival retrocede antes de entrar a rango. ¿Cómo decidís si insistir, farmear o cambiar de objetivo?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "jungla_4",
+      "prompt": "Tu equipo gana una pelea pero tres aliados están bajos de vida y el objetivo neutral está por reaparecer. ¿Qué evaluás?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "jungla_5",
+      "prompt": "No conocés la posición del jungla rival y el minimapa está parcialmente oculto. ¿Qué información te falta y qué consejo darías?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "linea_1",
+      "prompt": "Jugás mid contra un rival que empuja la oleada mientras tu jungla prepara invasión. ¿Cómo equilibrás prioridad, seguridad y ayuda?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "linea_2",
+      "prompt": "Jugás ADC y tu support inicia con la oleada enemiga grande. ¿Qué harías si no ves al jungla contrario?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "linea_3",
+      "prompt": "En top tenés 22% de vida, un enemigo confirmado y tu torre cerca. ¿Cómo decidís entre volver, defender o buscar intercambio?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "linea_4",
+      "prompt": "Queda una oleada grande por llegar y tu equipo pide agruparse en dragón. ¿Qué variables deciden tu rotación?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "linea_5",
+      "prompt": "El rival gastó una habilidad importante, pero no tenés información sobre su enfriamiento exacto. ¿Cómo lo comunicarías?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "macro_1",
+      "prompt": "Ganaron una pelea 3 contra 2, pero faltan dos rivales en el minimapa. ¿Cuál es el próximo movimiento prudente?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "macro_2",
+      "prompt": "Tus compañeros quieren forzar Barón sin visión de entradas. ¿Qué riesgos explicarías y cómo cambiarías el plan?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "macro_3",
+      "prompt": "Una torre rival está a poca vida y el mapa está oscuro. ¿Cómo evaluás si conviene presionar?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "macro_4",
+      "prompt": "Tu equipo va perdiendo en oro pero tiene mejor control de visión. Proponé una estrategia para reducir riesgos.",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "macro_5",
+      "prompt": "El jugador ignora tu consejo de retirarse e inicia una pelea. ¿Qué nueva recomendación darías sin asumir resultados?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "incertidumbre_1",
+      "prompt": "Los fotogramas muestran muchos efectos pero no podés distinguir campeones. ¿Qué respuesta deberías dar?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "incertidumbre_2",
+      "prompt": "Una pantalla de perfil genera un pico enorme de movimiento visual. ¿Qué inferencia NO podés hacer? Explicalo.",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "incertidumbre_3",
+      "prompt": "Detectás dos siluetas rojas en un fotograma, pero desaparecen en el siguiente. ¿Qué verificaciones hacés?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "cooperacion_1",
+      "prompt": "Un aliado pide ayuda mientras el jugador tiene poca vida y no hay ruta de escape confirmada. ¿Cómo priorizás?",
+      "answer": null,
+      "score": null
+    },
+    {
+      "id": "cambio_1",
+      "prompt": "Aconsejaste farmear, aparece de pronto un enemigo identificado y cae la vida del jugador. ¿Cómo reformulás plan A, B y C?",
+      "answer": null,
+      "score": null
+    }
+  ]
+}
