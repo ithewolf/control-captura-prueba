@@ -1,0 +1,42 @@
+name: CONTROL Lab13 detailed evidence and tactics (NO APK)
+on:
+  push:
+    branches: [lab13-detailed-tactical-evidence-20261123]
+    paths:
+      - 'tools/lab13_detailed_report.py'
+      - 'tools/test_lab13_detailed_report.py'
+      - 'lab13/**'
+      - '.github/workflows/lab13-detailed-evidence-no-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  honest-tactical-report:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test reporting and guardrails (14 tests)
+        run: |
+          python3 -m unittest tools.test_lab13_detailed_report -v
+      - name: Produce detailed report for the real Yasuo motion-only sample
+        run: |
+          python3 tools/lab13_detailed_report.py \
+            --input lab13/yasuo_a_40s_motion_only.json \
+            --out lab13_report.json
+          python3 - <<'PY'
+          import json
+          r=json.load(open('lab13_report.json',encoding='utf-8'))
+          assert r['source']=='MOTION_ONLY'
+          assert r['tactics']['can_recommend'] is False
+          assert r['metrics']['strategy_accuracy']=='NOT_MEASURED'
+          assert r['events']['strategic_event_recognition_status']=='NOT_MEASURED'
+          print('Lab13: detailed report refuses tactical or strategy claims without evidence.')
+          PY
+      - name: Preserve auditable detailed report
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-lab13-detailed-report
+          path: lab13_report.json
+          retention-days: 7
+          if-no-files-found: error
