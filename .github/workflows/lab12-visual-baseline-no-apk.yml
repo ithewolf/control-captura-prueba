@@ -1,0 +1,42 @@
+name: CONTROL Lab12 real video baseline tests (NO APK)
+on:
+  push:
+    branches: [lab12-real-visual-activity-20261122]
+    paths:
+      - 'tools/lab12_video_motion_baseline.py'
+      - 'lab12/**'
+      - '.github/workflows/lab12-visual-baseline-no-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tiny-video-pipeline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install OpenCV and FFmpeg for isolated lab
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends python3-opencv ffmpeg
+      - name: Make tiny two-color artificial test clip (not gameplay)
+        run: |
+          ffmpeg -hide_banner -loglevel error -y \
+            -f lavfi -i color=c=black:s=160x90:r=10:d=4 \
+            -f lavfi -i color=c=white:s=160x90:r=10:d=4 \
+            -filter_complex '[0:v][1:v]concat=n=2:v=1:a=0,format=yuv420p' \
+            -c:v libx264 -pix_fmt yuv420p /tmp/lab12_synthetic.mp4
+      - name: Validate optical-change signal and no tactical claims
+        run: |
+          python3 tools/lab12_video_motion_baseline.py \
+            --video /tmp/lab12_synthetic.mp4 --step 1 \
+            --out /tmp/lab12_test_report.json
+          python3 - <<'PY'
+          import json
+          p=json.load(open('/tmp/lab12_test_report.json',encoding='utf-8'))
+          assert p['status']=='VISUAL_ACTIVITY_MEASURED'
+          assert p['game_events_status']=='NOT_MEASURED'
+          assert p['samples']>=6
+          assert p['top_activity_windows'][0]['mean_frame_change']>100
+          print('Lab12 optical-change pipeline works; strategy metrics not measured.')
+          PY
