@@ -1,0 +1,30 @@
+name: CONTROL Lab19 capture contract audit (NO APK)
+on:
+  push:
+    branches: [lab19-capture-contract-no-apk-20261123]
+    paths:
+      - 'tools/lab19_capture_contract.py'
+      - 'tools/test_lab19_capture_contract.py'
+      - '.github/workflows/lab19-capture-contract-no-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  capture-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify capture source contract and report missing real-device proof
+        run: |
+          python3 -m py_compile tools/lab19_capture_contract.py tools/test_lab19_capture_contract.py
+          python3 -m unittest tools.test_lab19_capture_contract -v
+          mkdir -p output
+          python3 tools/lab19_capture_contract.py > output/capture_contract_report.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: control-lab19-source-audit-no-apk
+          path: output/capture_contract_report.json
+          if-no-files-found: warn
+          retention-days: 7
