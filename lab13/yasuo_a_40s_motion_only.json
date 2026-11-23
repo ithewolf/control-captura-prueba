@@ -1,0 +1,9 @@
+{
+  "video_id": "yasuo_a",
+  "timestamp_s": 40,
+  "source": "MOTION_ONLY",
+  "detections": [],
+  "event_predictions": [],
+  "visual_change_measured": true,
+  "note": "Frame-to-frame activity measured; no champion/event detector predictions exist."
+}
