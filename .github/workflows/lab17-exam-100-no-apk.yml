@@ -1,0 +1,48 @@
+name: CONTROL Lab17 tactical exam 100 (NO APK)
+on:
+  push:
+    branches: [lab17-strategic-exam-100-20261123]
+    paths:
+      - 'app/src/test/java/com/iawolf/captureprobe/Exam100.java'
+      - 'lab17/**'
+      - '.github/workflows/lab17-exam-100-no-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  first-stage-100:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compile genuine TacticalDecisionEngine and take 100 question exam
+        run: |
+          mkdir -p /tmp/control-exam
+          javac -d /tmp/control-exam \
+            app/src/main/java/com/iawolf/captureprobe/TacticalDecisionEngine.java \
+            app/src/test/java/com/iawolf/captureprobe/Exam100.java
+          java -cp /tmp/control-exam com.iawolf.captureprobe.Exam100 > exam_100_responses.jsonl
+          test "$(wc -l < exam_100_responses.jsonl)" -eq 100
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          rows=[json.loads(x) for x in Path('exam_100_responses.jsonl').read_text().splitlines()]
+          correct=sum(r['passed'] for r in rows)
+          summary={'total':len(rows),'correct':correct,'score_percent':correct,'phase1_status':'PASS' if correct>=80 else 'FAIL',
+             'phase2_status':'BLOCKED_NO_FREE_FORM_RESPONDER' if correct>=80 else 'NOT_ELIGIBLE',
+             'limitation':'Rule-policy regression exam; does not certify free-form strategic intelligence.'}
+          Path('lab17_exam_summary.json').write_text(json.dumps(summary,indent=2)+'\n')
+          print(json.dumps(summary))
+          assert correct>=80, 'Phase 1 below 80%, free form stage not eligible'
+          PY
+      - name: Save full per-question answers, summary and phase 2 question list
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: control-lab17-100-answers-and-open-gate
+          path: |
+            exam_100_responses.jsonl
+            lab17_exam_summary.json
+            lab17/open_response_20_questions.json
+          if-no-files-found: warn
+          retention-days: 7
