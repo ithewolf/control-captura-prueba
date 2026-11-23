@@ -1,0 +1,28 @@
+name: CONTROL Lab11 video event evaluator (NO APK)
+on:
+  push:
+    branches: [lab11-real-video-events-20261122]
+    paths:
+      - 'lab11/**'
+      - 'tools/lab11_strategy_eval.py'
+      - 'tools/test_lab11_strategy_eval.py'
+      - '.github/workflows/lab11-video-events-no-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-evaluation-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run synthetic evaluator unit checks only
+        run: |
+          python3 -m unittest tools.test_lab11_strategy_eval -v
+          python3 tools/lab11_strategy_eval.py --out /tmp/lab11.json
+          python3 - <<'PY'
+          import json
+          with open('/tmp/lab11.json',encoding='utf-8') as f: report=json.load(f)
+          assert report['status']=='NOT_MEASURED'
+          print('No real event recognition claims without independent labels and predictions')
+          PY
