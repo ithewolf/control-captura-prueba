@@ -6,6 +6,8 @@ on:
       - 'app/src/main/java/com/iawolf/captureprobe/TacticalPlanCoordinator.java'
       - 'app/src/main/java/com/iawolf/captureprobe/TacticalDecisionEngine.java'
       - 'tests/TacticalPlanCoordinatorTest.java'
+      - 'tests/EnemyPlanPipelineTest.java'
+      - 'app/src/main/java/com/iawolf/captureprobe/EnemyPlanPipeline.java'
       - 'lab10/**'
       - '.github/workflows/lab10-tactics-no-apk.yml'
   workflow_dispatch:
@@ -27,8 +29,12 @@ jobs:
           javac -encoding UTF-8 -d /tmp/control-lab10 \
             app/src/main/java/com/iawolf/captureprobe/TacticalDecisionEngine.java \
             app/src/main/java/com/iawolf/captureprobe/TacticalPlanCoordinator.java \
-            tests/TacticalPlanCoordinatorTest.java
+            app/src/main/java/com/iawolf/captureprobe/EnemyObservationGate.java \
+            app/src/main/java/com/iawolf/captureprobe/EnemyPlanPipeline.java \
+            tests/TacticalPlanCoordinatorTest.java \
+            tests/EnemyPlanPipelineTest.java
           java -cp /tmp/control-lab10 TacticalPlanCoordinatorTest
+          java -cp /tmp/control-lab10 EnemyPlanPipelineTest
       - name: Validate source catalog and honest video-learning status
         run: |
           python3 - <<'PY'
