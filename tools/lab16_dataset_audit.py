@@ -11,7 +11,7 @@ CLASSES=("SELF","ALLY_CHAMPION","ENEMY_CHAMPION","ALLY_MINION","ENEMY_MINION",
          "TOWER","DRAGON","BARON")
 def audit(manifest_path,images_root,labels_root=None):
     with Path(manifest_path).open(encoding="utf-8",newline="") as f: items=list(csv.DictReader(f))
-    problems=[]; stats=Counter(); seen=set()
+    problems=[]; stats=Counter(); seen=set(); video_splits={}
     for row in items:
         name=row.get("image","")
         if not name or Path(name).name!=name or name in seen:
@@ -19,6 +19,11 @@ def audit(manifest_path,images_root,labels_root=None):
         seen.add(name)
         split=row.get("split")
         if split not in ("development","holdout"):problems.append(name+": invalid split")
+        video_id=row.get("video_id","").strip()
+        if not video_id:problems.append(name+": video_id missing")
+        elif video_id in video_splits and video_splits[video_id]!=split:
+            problems.append(name+": same source video in development and holdout (DATA LEAKAGE)")
+        else:video_splits[video_id]=split
         path=Path(images_root)/name
         if not path.is_file():problems.append(name+": missing image")
         if row.get("game_verified")!="YES":
