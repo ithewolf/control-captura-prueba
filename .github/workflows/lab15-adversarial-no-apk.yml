@@ -5,6 +5,7 @@ on:
     paths:
       - 'tools/lab15_adversarial_acceptance.py'
       - 'tools/test_lab15_adversarial_acceptance.py'
+      - 'tools/test_lab15_extra_safety.py'
       - 'lab15/**'
       - '.github/workflows/lab15-adversarial-no-apk.yml'
   workflow_dispatch:
@@ -16,8 +17,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - name: Run fourteen adversarial scenarios
-        run: python3 -m unittest tools.test_lab15_adversarial_acceptance -v
+      - name: Run twenty adversarial scenarios
+        run: python3 -m unittest tools.test_lab15_adversarial_acceptance tools.test_lab15_extra_safety -v
       - name: Produce genuine baseline acceptance report (must be BLOCKED)
         run: |
           python3 - <<'PY'
