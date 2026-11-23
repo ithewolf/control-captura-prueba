@@ -1,0 +1,53 @@
+name: CONTROL Lab10 tactical contingency + video inventory (NO APK)
+on:
+  push:
+    branches: [lab10-wildrift-tutorial-curriculum-20261122]
+    paths:
+      - 'app/src/main/java/com/iawolf/captureprobe/TacticalPlanCoordinator.java'
+      - 'app/src/main/java/com/iawolf/captureprobe/TacticalDecisionEngine.java'
+      - 'tests/TacticalPlanCoordinatorTest.java'
+      - 'lab10/**'
+      - '.github/workflows/lab10-tactics-no-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  tactical-offline:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Validate plan selection and fallback without Android or APK
+        run: |
+          mkdir -p /tmp/control-lab10
+          javac -encoding UTF-8 -d /tmp/control-lab10 \
+            app/src/main/java/com/iawolf/captureprobe/TacticalDecisionEngine.java \
+            app/src/main/java/com/iawolf/captureprobe/TacticalPlanCoordinator.java \
+            tests/TacticalPlanCoordinatorTest.java
+          java -cp /tmp/control-lab10 TacticalPlanCoordinatorTest
+      - name: Validate source catalog and honest video-learning status
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          j=json.loads(Path('lab10/tutorial_sources.json').read_text(encoding='utf-8'))
+          assert len(j['sources'])>=3 and len(j['modules'])>=5
+          assert j['review_rules']['do_not_claim_video_watched']
+          assert j['review_rules']['human_review_before_promoting_rules']
+          print('Catalog validated; NO tutorials watched and NO recognition accuracy measured.')
+          PY
+      - name: Inspect five-video inventory WITHOUT videos or metrics claims
+        run: |
+          python3 -m py_compile tools/lab9_video_benchmark.py
+          python3 tools/lab9_video_benchmark.py --output /tmp/control-lab10-inventory
+          python3 - <<'PY'
+          import json
+          with open('/tmp/control-lab10-inventory/evaluation.json',encoding='utf-8') as f: r=json.load(f)
+          assert r['recognition_evaluation']['status']=='NOT_MEASURED'
+          assert len(r['video_inventory'])==5
+          print('Five source slots found; recognition NOT_MEASURED without human labels and detector predictions.')
+          PY
