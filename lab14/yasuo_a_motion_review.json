@@ -1,0 +1,84 @@
+{
+  "schema": 1,
+  "status": "REVIEW_CANDIDATES_FROM_REAL_MOTION",
+  "source": "User library Yasuo A video, actual Lab12 measurements",
+  "input_samples": 90,
+  "measured_pairs": 89,
+  "percentile": 0.85,
+  "threshold_visual_change": 33.1557,
+  "review_windows": [
+    {
+      "start_s": 0,
+      "end_s": 6,
+      "peak_s": 2,
+      "peak_visual_change": 95.0057,
+      "reason": "HIGH_FRAME_DIFFERENCE_ONLY",
+      "game_event": "UNLABELED",
+      "champion_id": "UNVERIFIED",
+      "next_action": "HUMAN_REVIEW_CONTEXT"
+    },
+    {
+      "start_s": 8,
+      "end_s": 12,
+      "peak_s": 10,
+      "peak_visual_change": 36.899,
+      "reason": "HIGH_FRAME_DIFFERENCE_ONLY",
+      "game_event": "UNLABELED",
+      "champion_id": "UNVERIFIED",
+      "next_action": "HUMAN_REVIEW_CONTEXT"
+    },
+    {
+      "start_s": 28,
+      "end_s": 32,
+      "peak_s": 30,
+      "peak_visual_change": 42.6975,
+      "reason": "HIGH_FRAME_DIFFERENCE_ONLY",
+      "game_event": "UNLABELED",
+      "champion_id": "UNVERIFIED",
+      "next_action": "HUMAN_REVIEW_CONTEXT"
+    },
+    {
+      "start_s": 38,
+      "end_s": 44,
+      "peak_s": 40,
+      "peak_visual_change": 88.5268,
+      "reason": "HIGH_FRAME_DIFFERENCE_ONLY",
+      "game_event": "UNLABELED",
+      "champion_id": "UNVERIFIED",
+      "next_action": "HUMAN_REVIEW_CONTEXT"
+    },
+    {
+      "start_s": 48,
+      "end_s": 54,
+      "peak_s": 52,
+      "peak_visual_change": 34.3885,
+      "reason": "HIGH_FRAME_DIFFERENCE_ONLY",
+      "game_event": "UNLABELED",
+      "champion_id": "UNVERIFIED",
+      "next_action": "HUMAN_REVIEW_CONTEXT"
+    },
+    {
+      "start_s": 134,
+      "end_s": 144,
+      "peak_s": 136,
+      "peak_visual_change": 35.1196,
+      "reason": "HIGH_FRAME_DIFFERENCE_ONLY",
+      "game_event": "UNLABELED",
+      "champion_id": "UNVERIFIED",
+      "next_action": "HUMAN_REVIEW_CONTEXT"
+    },
+    {
+      "start_s": 150,
+      "end_s": 158,
+      "peak_s": 154,
+      "peak_visual_change": 34.5061,
+      "reason": "HIGH_FRAME_DIFFERENCE_ONLY",
+      "game_event": "UNLABELED",
+      "champion_id": "UNVERIFIED",
+      "next_action": "HUMAN_REVIEW_CONTEXT"
+    }
+  ],
+  "game_events_status": "NOT_MEASURED",
+  "strategy_recognition_status": "NOT_MEASURED",
+  "warning": "Changes can be edits, camera motion or effects; no recognized champions or tactics."
+}
