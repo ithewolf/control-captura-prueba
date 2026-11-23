@@ -28,6 +28,6 @@ public final class TacticalPlanCoordinatorTest {
         var farm=run(state(80,0,0,true,true,true,false),TacticalPlanCoordinator.Intent.FARM,false,false);
         yes(farm.primary==TacticalPlanCoordinator.Plan.OBSERVE_AND_FARM,"farm");
         yes(farm.contingency==TacticalPlanCoordinator.Plan.DEFEND_AND_RETREAT,"contingency");
-        System.out.println("TacticalPlanCoordinator: 11/11 checks OK");
+        System.out.println("TacticalPlanCoordinator: 12/12 checks OK");
     }
 }
