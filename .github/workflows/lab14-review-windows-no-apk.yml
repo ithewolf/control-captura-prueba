@@ -1,0 +1,32 @@
+name: CONTROL Lab14 review real video activity (NO APK)
+on:
+  push:
+    branches: [lab14-real-video-review-windows-20261123]
+    paths:
+      - 'tools/lab14_review_windows.py'
+      - 'tools/test_lab14_review_windows.py'
+      - 'lab14/**'
+      - '.github/workflows/lab14-review-windows-no-apk.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  review-candidates:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests and validate real-data summary (not recognition)
+        run: |
+          python3 -m unittest tools.test_lab14_review_windows -v
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=json.loads(Path('lab14/yasuo_a_motion_review.json').read_text())
+          assert p['input_samples']==90
+          assert len(p['review_windows'])==7
+          assert p['game_events_status']=='NOT_MEASURED'
+          assert p['strategy_recognition_status']=='NOT_MEASURED'
+          assert all(w['game_event']=='UNLABELED' for w in p['review_windows'])
+          print('7 real-motion review windows; zero measured tactical recognition results.')
+          PY
