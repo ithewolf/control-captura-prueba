@@ -1,0 +1,30 @@
+name: CONTROL Lab18A Ollama PC (NO APK)
+on:
+  push:
+    branches: [lab18a-ollama-local-brain-20261123]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  architecture-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 4
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test Ollama adapter and shared scoring without claiming a model ran
+        run: python3 -m unittest tools.test_brain_comparison_eval tools.test_lab18a_ollama -v
+      - name: Publish no-model benchmark status
+        run: |
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          from tools.brain_comparison_eval import audit
+          q=json.loads(Path('lab17/open_response_20_questions.json').read_text())['questions']
+          rows=[{'id':x['id'],'answer':None} for x in q]
+          Path('lab18a_no_model.json').write_text(json.dumps({'architecture':'A_OLLAMA_PC','evaluation':audit(rows)},indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: control-lab18a-no-model-baseline
+          path: lab18a_no_model.json
+          retention-days: 7
